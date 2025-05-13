@@ -13,10 +13,7 @@ function createDeck() {
   deck = [];
   for (const suit of suits) {
     for (const rank of ranks) {
-      deck.push({
-        rank: rank,
-        suit: suit
-      });
+      deck.push({ rank, suit });
     }
   }
   shuffle(deck);
@@ -33,9 +30,7 @@ function playSound() {
   const audio = document.getElementById("dice");
   if (audio) {
     audio.currentTime = 0;
-    audio.play().catch(err => {
-      console.error("Playback error:", err);
-    });
+    audio.play().catch(err => console.error("Playback error:", err));
   }
 }
 
@@ -74,13 +69,8 @@ function dealHand() {
     return;
   }
 
-  // Render who goes first
-  const firstPlayerContainer = document.getElementById("first-player");
-  if (firstPlayerContainer) {
-    firstPlayerContainer.textContent = `${firstPlayer} go${firstPlayer === "You" ? "" : "es"} first!`;
-  }
+  document.getElementById("first-player").textContent = `${firstPlayer} go${firstPlayer === "You" ? "" : "es"} first!`;
 
-  // Render player hand
   const handContainer = document.getElementById("poker-hand");
   handContainer.innerHTML = "";
   hand.forEach((card, index) => {
@@ -95,18 +85,16 @@ function dealHand() {
     setTimeout(() => cardDiv.classList.add("revealed"), index * 100);
   });
 
-  // Render opponent hand one by one
   const opponentContainer = document.getElementById("opponent-hand");
   opponentContainer.innerHTML = "";
   opponent.forEach((_, index) => {
     setTimeout(() => {
       const back = document.createElement("div");
-      back.className = "card-back revealed"; // Add 'revealed' for animation if needed
+      back.className = "card-back revealed";
       opponentContainer.appendChild(back);
-    }, index * 100); // Same delay as player cards
+    }, index * 100);
   });
 
-  // Render middle pile
   const middlePile = document.getElementById("middle-pile");
   middlePile.innerHTML = "";
   if (middleCard) {
@@ -118,31 +106,68 @@ function dealHand() {
       <div class="corner bottom-right">${middleCard.rank}${middleCard.suit.symbol}</div>
     `;
     middlePile.appendChild(cardDiv);
-  } else {
-    middlePile.innerHTML = `<div style="color:white;">No red card found</div>`;
   }
 
-  // Render remaining deck
+  updateDeckVisual(remainingDeck);
+}
+
+function drawCard() {
+  // Check if the deck is empty
+  if (deck.length === 0) {
+    console.log("No more cards in the deck.");
+    return;
+  }
+
+  // Get the player's hand container and check how many cards are in it
+  const handContainer = document.getElementById("poker-hand");
+  const currentHandSize = handContainer.children.length;
+
+  // Don't allow drawing more than 3 cards
+  if (currentHandSize >= 3) {
+    console.log("You already have 3 cards. Cannot draw more.");
+    return;
+  }
+
+  // Draw the top card from the deck
+  const card = deck.shift(); // Remove from the deck
+  console.log("Card drawn:", card);
+
+  // Create the card div
+  const cardDiv = document.createElement("div");
+  cardDiv.className = `card ${card.suit.color === "red" ? "red" : ""}`;
+  cardDiv.innerHTML = `
+    <div class="corner top-left">${card.rank}${card.suit.symbol}</div>
+    <div class="suit">${card.suit.symbol}</div>
+    <div class="corner bottom-right">${card.rank}${card.suit.symbol}</div>
+  `;
+
+  // Add the drawn card to the player's hand
+  handContainer.appendChild(cardDiv);
+  setTimeout(() => cardDiv.classList.add("revealed"), 100);
+
+  // Update the deck display
+  updateDeckVisual(deck);
+}
+
+function updateDeckVisual(currentDeck) {
   const deckContainer = document.getElementById("deck");
-  deckContainer.innerHTML = ""; // Clear out any existing cards
+  deckContainer.innerHTML = "";
 
-  const horizontalOffset = -0.1; // Extremely small horizontal offset for a slight stack
-
-  remainingDeck.forEach((_, i) => {
+  currentDeck.forEach((_, i) => {
     const back = document.createElement("div");
     back.className = "card-back";
-
-    const xOffset = i * horizontalOffset;
-    const yOffset = 0.5 // Absolutely no vertical offset
-
-    back.style.transform = `translateX(${xOffset}px) translateY(${yOffset}px)`;
-
+    back.style.zIndex = i + 1;
+    back.style.transform = `translateX(${-i * 0.5}px) translateY(${-i * 0.5}px)`;
     deckContainer.appendChild(back);
   });
 
+  // Mark the top card for hover effect
+  const backs = deckContainer.querySelectorAll(".card-back");
+  if (backs.length > 0) {
+    backs[backs.length - 1].classList.add("top-card");
+  }
 
-
-
+  // Reveal the deck
   setTimeout(() => {
     deckContainer.classList.add("revealed");
   }, 200);

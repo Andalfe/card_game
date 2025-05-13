@@ -1,13 +1,12 @@
-/* General Layout */
 body {
   margin: 0;
   height: 100vh;
-  background: #0b3d0b; /* poker table green */
+  background: #0b3d0b;
   display: flex;
   justify-content: center;
   align-items: flex-end;
   font-family: 'Segoe UI', sans-serif;
-  flex-direction: column; /* Stack content vertically */
+  flex-direction: column;
   position: relative;
 }
 
@@ -24,27 +23,24 @@ button {
   color: #333;
   cursor: pointer;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-  transition: background-color 0.2s ease;
-  z-index: 10; /* Make sure button is always on top */
+  z-index: 10;
 }
 
 button:hover {
   background-color: #f0f0f0;
 }
 
-/* Poker Hand */
 .poker-hand {
   display: flex;
   gap: 16px;
   margin-bottom: 30px;
   z-index: 1;
-  position: absolute; /* Keep it positioned relative to body */
-  bottom: 30px; /* Position it at the bottom */
-  left: 50%; /* Center horizontally */
-  transform: translateX(-50%); /* Ensure the hand is centered */
+  position: absolute;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
 }
 
-/* Card Style */
 .card {
   width: 80px;
   height: 120px;
@@ -91,17 +87,25 @@ button:hover {
   color: black;
 }
 
-/* Deck */
+.card.revealed {
+  opacity: 1;
+  transform: translateY(0px);
+}
+
 .deck {
   position: absolute;
   bottom: 30px;
   right: 30px;
   width: 80px;
   height: 120px;
-  pointer-events: none; /* prevent accidental clicks */
   opacity: 0;
   transition: opacity 0.2s ease-in-out;
-  z-index: 0; /* Ensures deck is behind the hand and middle pile */
+  z-index: 5;
+  pointer-events: auto;
+}
+
+.deck.revealed {
+  opacity: 1;
 }
 
 .card-back {
@@ -117,24 +121,35 @@ button:hover {
   border: 2px solid #111;
   border-radius: 10px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
-  /* Updated styles for almost complete overlap */
-  position: absolute; /* Allow stacking via z-index and slight transforms */
+  position: absolute;
   top: 0;
   left: 0;
+  transition: transform 0.3s ease-in-out;
 }
 
-/* Animation for card reveal */
-.card.revealed {
-  opacity: 1;
-  transform: translateY(0px);
+/* OLD HOVER STYLE — no longer needed
+.deck:hover .card-back:last-child {
+  transform: scale(1.2) translateY(-10px);
+  z-index: 1000;
+}
+*/
+
+/* 🔥 Updated top-card hover style */
+.card-back.top-card {
+  position: relative;
+  z-index: 999;
+  transition: transform 0.3s ease-in-out;
 }
 
-/* Animation for deck */
-.deck.revealed {
-  opacity: 1;
+.card-back.top-card:hover {
+  transform: scale(1.2) translateY(-40px) !important;
 }
 
-/* Opponent Hand */
+/* Optional glow effect on hover */
+.card-back.top-card:hover {
+  box-shadow: 0 0 10px 4px rgba(255, 255, 255, 0.4);
+}
+
 .opponent-hand {
   position: absolute;
   top: 30px;
@@ -143,70 +158,26 @@ button:hover {
   display: flex;
   justify-content: center;
   align-items: flex-end;
-  height: 140px; /* Allow space for fanned layout */
+  height: 140px;
   pointer-events: none;
 }
 
 .opponent-hand .card-back {
   position: absolute;
-  transform-origin: bottom center; /* Make the cards rotate around the center */
-  background: repeating-linear-gradient(
-    45deg,
-    #2b2b2b,
-    #2b2b2b 4px,
-    #444 4px,
-    #444 8px
-  );
+  transform-origin: bottom center;
   transition: transform 0.2s ease-in-out;
 }
 
-/* Fanned layout for opponent's hand */
-.opponent-hand .card-back:nth-child(1) {
-  transform: rotate(-40deg) translateY(10px); /* Leftmost card */
-  z-index: 1;
-}
+.opponent-hand .card-back:nth-child(1) { transform: rotate(-40deg) translateY(10px); z-index: 1; }
+.opponent-hand .card-back:nth-child(2) { transform: rotate(-30deg) translateY(8px); z-index: 2; }
+.opponent-hand .card-back:nth-child(3) { transform: rotate(-20deg) translateY(6px); z-index: 3; }
+.opponent-hand .card-back:nth-child(4) { transform: rotate(-10deg) translateY(4px); z-index: 4; }
+.opponent-hand .card-back:nth-child(5) { transform: rotate(0deg) translateY(2px); z-index: 5; }
+.opponent-hand .card-back:nth-child(6) { transform: rotate(10deg) translateY(4px); z-index: 4; }
+.opponent-hand .card-back:nth-child(7) { transform: rotate(20deg) translateY(6px); z-index: 3; }
+.opponent-hand .card-back:nth-child(8) { transform: rotate(30deg) translateY(8px); z-index: 2; }
+.opponent-hand .card-back:nth-child(9) { transform: rotate(40deg) translateY(10px); z-index: 1; }
 
-.opponent-hand .card-back:nth-child(2) {
-  transform: rotate(-30deg) translateY(8px);
-  z-index: 2;
-}
-
-.opponent-hand .card-back:nth-child(3) {
-  transform: rotate(-20deg) translateY(6px);
-  z-index: 3;
-}
-
-.opponent-hand .card-back:nth-child(4) {
-  transform: rotate(-10deg) translateY(4px);
-  z-index: 4;
-}
-
-.opponent-hand .card-back:nth-child(5) {
-  transform: rotate(0deg) translateY(2px); /* Center card */
-  z-index: 5;
-}
-
-.opponent-hand .card-back:nth-child(6) {
-  transform: rotate(10deg) translateY(4px);
-  z-index: 4;
-}
-
-.opponent-hand .card-back:nth-child(7) {
-  transform: rotate(20deg) translateY(6px);
-  z-index: 3;
-}
-
-.opponent-hand .card-back:nth-child(8) {
-  transform: rotate(30deg) translateY(8px);
-  z-index: 2;
-}
-
-.opponent-hand .card-back:nth-child(9) {
-  transform: rotate(40deg) translateY(10px); /* Rightmost card */
-  z-index: 1;
-}
-
-/* Middle Pile */
 .middle-pile {
   position: absolute;
   top: 50%;
@@ -231,7 +202,6 @@ button:hover {
 .middle-pile .card.red {
   color: red;
 }
-
 
 .first-player-message {
   font-size: 1.5em;

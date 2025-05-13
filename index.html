@@ -1,24 +1,21 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Shithead Game</title>
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css"/>
 </head>
-
 <body>
-  <div>
-    <audio id="dice" src="sounds/card-flip.mp3" preload="auto"></audio>
-    <button onclick="dealHand(); playSound()" class="deal-button">Deal New Hand</button>
-  </div>
+  <audio id="dice" src="sounds/card-flip.mp3" preload="auto"></audio>
+  <button onclick="dealHand(); playSound()" class="deal-button">Deal New Hand</button>
+
+  <div id="first-player" class="first-player-message"></div>
   <div id="middle-pile" class="middle-pile"></div>
   <div class="opponent-hand" id="opponent-hand"></div>
-  <div class="deck" id="deck"></div>
+  <div id="deck" class="deck revealed" onclick="drawCard()"></div>
   <div class="poker-hand" id="poker-hand"></div>
-  <div id="first-player" class="first-player-message" ></div>
+
   <script src="script.js"></script>
 </body>
-
 </html>
