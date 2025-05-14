@@ -71,7 +71,7 @@ function dealHand() {
 
   document.getElementById("first-player").textContent = `${firstPlayer} go${firstPlayer === "You" ? "" : "es"} first! `;
 
-  const handContainer = document.getElementById("poker-hand");
+  const handContainer = document.getElementById("shead-hand");
   handContainer.innerHTML = "";
   hand.forEach((card, index) => {
     const cardDiv = document.createElement("div");
@@ -119,7 +119,7 @@ function drawCard() {
   }
 
   // Get the player's hand container and check how many cards are in it
-  const handContainer = document.getElementById("poker-hand");
+  const handContainer = document.getElementById("shead-hand");
   const currentHandSize = handContainer.children.length;
 
   // Don't allow drawing more than 3 cards

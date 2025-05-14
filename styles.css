@@ -30,7 +30,7 @@ button:hover {
   background-color: #f0f0f0;
 }
 
-.poker-hand {
+.shead-hand {
   display: flex;
   gap: 16px;
   margin-bottom: 30px;
@@ -41,7 +41,7 @@ button:hover {
   transform: translateX(-50%);
 }
 
-.poker-hand .card:hover {
+.shead-hand .card:hover {
   transform: scale(1.2) translateY(-20px);
   z-index: 1000;
   box-shadow: 0 0 10px 4px rgba(255, 255, 255, 0.4);
