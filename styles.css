@@ -100,7 +100,7 @@ button:hover {
 
 .deck {
   position: absolute;
-  bottom: 30px;
+  top: 550px; /* Increased from 150px */
   right: 30px;
   width: 80px;
   height: 120px;
@@ -130,13 +130,6 @@ button:hover {
   left: 0;
   transition: transform 0.3s ease-in-out;
 }
-
-/* OLD HOVER STYLE — no longer needed
-.deck:hover .card-back:last-child {
-  transform: scale(1.2) translateY(-10px);
-  z-index: 1000;
-}
-*/
 
 /* 🔥 Updated top-card hover style */
 .card-back.top-card {

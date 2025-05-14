@@ -15,6 +15,7 @@ let opponentHand = [];
 let playerHand = [];
 let needsInitialDraw = false;
 let initialCardPlayed = false;
+let waitingForDraw = false; // New flag
 
 function createDeck() {
   deck = [];
@@ -49,6 +50,7 @@ function dealHand() {
   middlePile = [];
   needsInitialDraw = false;
   initialCardPlayed = false;
+  waitingForDraw = false; // Initialize
 
   for (let rank of redRanks) {
     let i = playerHand.findIndex(card => card.rank === rank && card.suit.color === "red");
@@ -97,15 +99,74 @@ function renderHand(cards) {
   handContainer.innerHTML = "";
   cards.forEach((card, index) => {
     const cardDiv = createCardDiv(card);
+    let clickCount = 0;
+    let timer;
+
     cardDiv.addEventListener("click", () => {
-      if (currentTurn !== "Player") return;
+      if (currentTurn !== "Player" || waitingForDraw) return; // Disable card clicks while waiting to draw
       document.querySelectorAll("#shead-hand .card").forEach(c => c.classList.remove("selected"));
       cardDiv.classList.add("selected");
       selectedCard = { card, element: cardDiv };
+
+      clickCount++;
+      if (clickCount === 1) {
+        timer = setTimeout(() => {
+          clickCount = 0; // Reset after a delay if not a double-click
+        }, 300); // Adjust the delay for double-click as needed
+      } else if (clickCount === 2) {
+        clearTimeout(timer);
+        clickCount = 0;
+        handleDoubleClick(card, cardDiv);
+      }
     });
     handContainer.appendChild(cardDiv);
     setTimeout(() => cardDiv.classList.add("revealed"), index * 100);
   });
+}
+
+function handleDoubleClick(card, cardElement) {
+  if (currentTurn === "Player" && !waitingForDraw) {
+    const playCard = () => {
+      middlePile.push(card);
+      cardElement.remove();
+      playerHand = playerHand.filter(c => c !== card);
+      renderHand(playerHand);
+      renderMiddlePile();
+      selectedCard = null;
+      if (playerHand.length < 3 && deck.length > 0) {
+        waitingForDraw = true;
+        document.getElementById("first-player").textContent = "Click the deck to draw.";
+        // Do NOT end the turn here. Wait for the deck click.
+      } else {
+        endPlayerTurn();
+      }
+    };
+
+    if (middlePile.length === 0) {
+      playCard(); // Any card can start an empty pile
+    } else {
+      const selectedRankVal = rankValue(card.rank);
+      const middleRankVal = rankValue(middlePile[middlePile.length - 1].rank);
+      if (selectedRankVal >= middleRankVal) {
+        playCard(); // Valid play
+      } else {
+        // Invalid play - pick up the middle pile
+        playerHand.push(...middlePile);
+        middlePile = [];
+        renderHand(playerHand);
+        renderMiddlePile();
+        selectedCard = null;
+        // Player might need to draw after picking up
+        while (playerHand.length < 3 && deck.length > 0) {
+          const newCard = deck.shift();
+          playerHand.push(newCard);
+          renderHand(playerHand);
+          updateDeckVisual(deck);
+        }
+        endPlayerTurn(); // Turn ends after picking up
+      }
+    }
+  }
 }
 
 function renderOpponentHand() {
@@ -129,7 +190,7 @@ function renderMiddlePile() {
   }
 
   middlePileDiv.onclick = () => {
-    if (currentTurn !== "Player" || !selectedCard || middlePile.length === 0) return;
+    if (currentTurn !== "Player" || !selectedCard || middlePile.length === 0 || waitingForDraw) return;
 
     const selectedRankVal = rankValue(selectedCard.card.rank);
     const middleRankVal = rankValue(middlePile[middlePile.length - 1].rank);
@@ -144,7 +205,8 @@ function renderMiddlePile() {
 
       // After playing a card, check if we need to draw
       if (playerHand.length < 3 && deck.length > 0) {
-        document.getElementById("first-player").textContent = "Play a card or draw to end your turn";
+        waitingForDraw = true;
+        document.getElementById("first-player").textContent = "Click the deck to draw.";
       } else {
         endPlayerTurn();
       }
@@ -173,10 +235,19 @@ function endPlayerTurn() {
   currentTurn = "Opponent";
   document.getElementById("first-player").textContent = "Opponent goes next!";
   initialCardPlayed = false;
+  waitingForDraw = false; // Reset the flag
   setTimeout(opponentPlay, 800);
 }
 
 function opponentPlay() {
+  // Draw at the start of the turn if hand is less than 3
+  while (opponentHand.length < 3 && deck.length > 0) {
+    const newCard = deck.shift();
+    opponentHand.push(newCard);
+    renderOpponentHand();
+    updateDeckVisual(deck);
+  }
+
   const topCard = middlePile.length > 0 ? middlePile[middlePile.length - 1] : null;
   let playMade = false;
 
@@ -207,32 +278,28 @@ function opponentPlay() {
     playMade = true;
   }
 
-  // After playing or picking up, draw if needed (and then end turn)
-  if ((initialCardPlayed || playMade) && opponentHand.length < 3 && deck.length > 0) {
-    const newCard = deck.shift();
-    opponentHand.push(newCard);
-    renderOpponentHand();
-    updateDeckVisual(deck);
-  }
-
-  // Switch turns only after the opponent has made their action (play or pick up) and drawn if necessary
+  // Switch turns
   currentTurn = "Player";
   initialCardPlayed = false;
   document.getElementById("first-player").textContent = "It's your turn!";
 }
 
 document.getElementById("deck").addEventListener("click", () => {
-  if (currentTurn === "Player" && playerHand.length < 3 && deck.length > 0) {
+  if (currentTurn === "Player" && waitingForDraw && playerHand.length < 3 && deck.length > 0) {
     const card = deck.shift();
     playerHand.push(card);
     renderHand(playerHand);
     updateDeckVisual(deck);
     renderMiddlePile();
-
-    if (needsInitialDraw) {
-      needsInitialDraw = false;
-      document.getElementById("first-player").textContent = "Now play a card to end your turn";
-    }
+    waitingForDraw = false; // Reset the flag after drawing
+    endPlayerTurn(); // Now end the turn
+  } else if (currentTurn === "Player" && playerHand.length < 3 && deck.length > 0 && !waitingForDraw) {
+    // Normal draw if not waiting after playing
+    const card = deck.shift();
+    playerHand.push(card);
+    renderHand(playerHand);
+    updateDeckVisual(deck);
+    renderMiddlePile();
     endPlayerTurn();
   }
 });
