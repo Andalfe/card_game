@@ -124,6 +124,11 @@ function renderHand(cards) {
   });
 }
 
+
+
+let incorrectMoveSound = new Audio('sounds/fuck_up_pick_up.mp3'); // Create an Audio object
+
+
 function handleDoubleClick(card, cardElement) {
   if (currentTurn === "Player" && !waitingForDraw) {
     const playCard = () => {
@@ -136,7 +141,6 @@ function handleDoubleClick(card, cardElement) {
       if (playerHand.length < 3 && deck.length > 0) {
         waitingForDraw = true;
         document.getElementById("first-player").textContent = "Click the deck to draw.";
-        // Do NOT end the turn here. Wait for the deck click.
       } else {
         endPlayerTurn();
       }
@@ -147,10 +151,12 @@ function handleDoubleClick(card, cardElement) {
     } else {
       const selectedRankVal = rankValue(card.rank);
       const middleRankVal = rankValue(middlePile[middlePile.length - 1].rank);
+
       if (selectedRankVal >= middleRankVal) {
         playCard(); // Valid play
       } else {
-        // Invalid play - pick up the middle pile
+        // Invalid play - trigger sound and pick up the middle pile
+        incorrectMoveSound.play(); // Play the sound
         playerHand.push(...middlePile);
         middlePile = [];
         renderHand(playerHand);
@@ -163,11 +169,13 @@ function handleDoubleClick(card, cardElement) {
           renderHand(playerHand);
           updateDeckVisual(deck);
         }
-        endPlayerTurn(); // Turn ends after picking up
+        endPlayerTurn(); // End the turn after picking up
       }
     }
   }
 }
+
+
 
 function renderOpponentHand() {
   const container = document.getElementById("opponent-hand");
