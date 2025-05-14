@@ -49,13 +49,13 @@ function dealHand() {
     let i = hand.findIndex(card => card.rank === rank && card.suit.color === "red");
     if (i !== -1) {
       middleCard = hand.splice(i, 1)[0];
-      firstPlayer = "You";
+      firstPlayer = "Opponent";
       break;
     }
     let j = opponent.findIndex(card => card.rank === rank && card.suit.color === "red");
     if (j !== -1) {
       middleCard = opponent.splice(j, 1)[0];
-      firstPlayer = "Opponent";
+      firstPlayer = "You";
       break;
     }
   }
