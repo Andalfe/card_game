@@ -41,6 +41,12 @@ button:hover {
   transform: translateX(-50%);
 }
 
+.poker-hand .card:hover {
+  transform: scale(1.2) translateY(-20px);
+  z-index: 1000;
+  box-shadow: 0 0 10px 4px rgba(255, 255, 255, 0.4);
+}
+
 .card {
   width: 80px;
   height: 120px;
@@ -111,13 +117,11 @@ button:hover {
 .card-back {
   width: 80px;
   height: 120px;
-  background: repeating-linear-gradient(
-    45deg,
+  background: repeating-linear-gradient(45deg,
     #2b2b2b,
     #2b2b2b 4px,
     #444 4px,
-    #444 8px
-  );
+    #444 8px);
   border: 2px solid #111;
   border-radius: 10px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
@@ -168,15 +172,50 @@ button:hover {
   transition: transform 0.2s ease-in-out;
 }
 
-.opponent-hand .card-back:nth-child(1) { transform: rotate(-40deg) translateY(10px); z-index: 1; }
-.opponent-hand .card-back:nth-child(2) { transform: rotate(-30deg) translateY(8px); z-index: 2; }
-.opponent-hand .card-back:nth-child(3) { transform: rotate(-20deg) translateY(6px); z-index: 3; }
-.opponent-hand .card-back:nth-child(4) { transform: rotate(-10deg) translateY(4px); z-index: 4; }
-.opponent-hand .card-back:nth-child(5) { transform: rotate(0deg) translateY(2px); z-index: 5; }
-.opponent-hand .card-back:nth-child(6) { transform: rotate(10deg) translateY(4px); z-index: 4; }
-.opponent-hand .card-back:nth-child(7) { transform: rotate(20deg) translateY(6px); z-index: 3; }
-.opponent-hand .card-back:nth-child(8) { transform: rotate(30deg) translateY(8px); z-index: 2; }
-.opponent-hand .card-back:nth-child(9) { transform: rotate(40deg) translateY(10px); z-index: 1; }
+.opponent-hand .card-back:nth-child(1) {
+  transform: rotate(-40deg) translateY(10px);
+  z-index: 1;
+}
+
+.opponent-hand .card-back:nth-child(2) {
+  transform: rotate(-30deg) translateY(8px);
+  z-index: 2;
+}
+
+.opponent-hand .card-back:nth-child(3) {
+  transform: rotate(-20deg) translateY(6px);
+  z-index: 3;
+}
+
+.opponent-hand .card-back:nth-child(4) {
+  transform: rotate(-10deg) translateY(4px);
+  z-index: 4;
+}
+
+.opponent-hand .card-back:nth-child(5) {
+  transform: rotate(0deg) translateY(2px);
+  z-index: 5;
+}
+
+.opponent-hand .card-back:nth-child(6) {
+  transform: rotate(10deg) translateY(4px);
+  z-index: 4;
+}
+
+.opponent-hand .card-back:nth-child(7) {
+  transform: rotate(20deg) translateY(6px);
+  z-index: 3;
+}
+
+.opponent-hand .card-back:nth-child(8) {
+  transform: rotate(30deg) translateY(8px);
+  z-index: 2;
+}
+
+.opponent-hand .card-back:nth-child(9) {
+  transform: rotate(40deg) translateY(10px);
+  z-index: 1;
+}
 
 .middle-pile {
   position: absolute;

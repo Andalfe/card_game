@@ -69,7 +69,7 @@ function dealHand() {
     return;
   }
 
-  document.getElementById("first-player").textContent = `${firstPlayer} go${firstPlayer === "You" ? "" : "es"} first!`;
+  document.getElementById("first-player").textContent = `${firstPlayer} go${firstPlayer === "You" ? "" : "es"} first! `;
 
   const handContainer = document.getElementById("poker-hand");
   handContainer.innerHTML = "";
