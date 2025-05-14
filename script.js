@@ -4,15 +4,15 @@ const suits = [
   { symbol: "♦", name: "diamonds", color: "red" },
   { symbol: "♣", name: "clubs", color: "black" }
 ];
-
 const ranks = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"];
 const handSize = 3;
+
 let deck = [];
+let playerHand = [];
+let opponentHand = [];
 let selectedCard = null;
 let middleCard = null;
-let currentTurn = "Player"; // Tracks turn
-let opponentHand = [];
-let playerHand = [];
+let currentTurn = "Player";
 
 function createDeck() {
   deck = [];
@@ -37,7 +37,6 @@ function rankValue(rank) {
 
 function dealHand() {
   createDeck();
-
   playerHand = deck.slice(0, handSize);
   opponentHand = deck.slice(handSize, handSize * 2);
   deck = deck.slice(handSize * 2);
@@ -65,12 +64,11 @@ function dealHand() {
     if (blackThreeIndex !== -1) {
       deck = [...deck.slice(blackThreeIndex), ...deck.slice(0, blackThreeIndex)];
     }
-    dealHand(); // restart
+    dealHand();
     return;
   }
 
   currentTurn = firstPlayer;
-
   document.getElementById("first-player").textContent = `${firstPlayer} go${firstPlayer === "Player" ? "" : "es"} first!`;
 
   renderHand(playerHand);
@@ -78,15 +76,20 @@ function dealHand() {
   renderMiddlePile();
   updateDeckVisual(deck);
 
-  if (currentTurn === "Opponent") {
-    setTimeout(opponentPlay, 600);
+  if (firstPlayer === "Opponent") {
+    if (opponentHand.length < 3 && deck.length > 0) {
+      opponentHand.push(deck.shift());
+      renderOpponentHand();
+      updateDeckVisual(deck);
+    }
+    setTimeout(opponentPlay, 800);
   }
 }
 
 function renderHand(cards) {
   const handContainer = document.getElementById("shead-hand");
   handContainer.innerHTML = "";
-  cards.forEach((card, index) => {
+  cards.forEach(card => {
     const cardDiv = createCardDiv(card);
     cardDiv.addEventListener("click", () => {
       if (currentTurn !== "Player") return;
@@ -95,14 +98,13 @@ function renderHand(cards) {
       selectedCard = { card, element: cardDiv };
     });
     handContainer.appendChild(cardDiv);
-    setTimeout(() => cardDiv.classList.add("revealed"), index * 100);
   });
 }
 
 function renderOpponentHand() {
   const container = document.getElementById("opponent-hand");
   container.innerHTML = "";
-  opponentHand.forEach((_, index) => {
+  opponentHand.forEach(() => {
     const back = document.createElement("div");
     back.className = "card-back revealed";
     container.appendChild(back);
@@ -124,73 +126,65 @@ function renderMiddlePile() {
     const middleRankVal = rankValue(middleCard.rank);
 
     if (selectedRankVal > middleRankVal) {
-      // ✅ Player lays a higher card, so it goes on top of the middle pile
       middleCard = selectedCard.card;
-      selectedCard.element.remove(); // Remove the card from the player's hand
-      selectedCard = null; // Reset selected card
-      renderMiddlePile(); // Update the middle pile
-
-      playerHand = playerHand.filter(c => c !== middleCard); // Remove the card from player's hand
+      selectedCard.element.remove();
+      playerHand = playerHand.filter(c => c !== middleCard);
       renderHand(playerHand);
+      selectedCard = null;
+      renderMiddlePile();
 
-      // If the middle pile is won by player, they take all cards
-      if (middleCard) {
-        playerHand.push(middleCard);
+      if (deck.length > 0 && playerHand.length < 3) {
+        const drawn = deck.shift();
+        playerHand.push(drawn);
+        renderHand(playerHand);
+        updateDeckVisual(deck);
       }
 
-      // Ensure the player picks up a card before opponent plays
-      if (playerHand.length < 3 && deck.length > 0) {
-        drawCard(); // Player draws a card
-      }
-      setTimeout(opponentPlay, 600);
+      currentTurn = "Opponent";
+      document.getElementById("first-player").textContent = "Opponent goes next!";
+      setTimeout(opponentPlay, 800);
     } else {
-      alert("Card is not higher than middle card.");
+      alert("That card is not higher than the middle card.");
     }
   };
 }
 
 function opponentPlay() {
-  if (opponentHand.length < 3) {
-    // Opponent can't play unless they have 3 cards, so wait until the player draws
-    currentTurn = "Player";
-    document.getElementById("first-player").textContent = "It's your turn!";
-    return;
-  }
+  if (opponentHand.length === 0) return;
 
   const middleVal = rankValue(middleCard.rank);
   const playable = opponentHand.filter(card => rankValue(card.rank) > middleVal);
 
   if (playable.length > 0) {
-    // Choose lowest higher card
     playable.sort((a, b) => rankValue(a.rank) - rankValue(b.rank));
     const chosen = playable[0];
 
     opponentHand = opponentHand.filter(c => c !== chosen);
     middleCard = chosen;
+
     renderOpponentHand();
     renderMiddlePile();
 
-    // Opponent picks a card from the deck
-    if (deck.length > 0) {
-      const newCard = deck.shift();
-      opponentHand.push(newCard);
+    if (deck.length > 0 && opponentHand.length < 3) {
+      const drawn = deck.shift();
+      opponentHand.push(drawn);
       renderOpponentHand();
+      updateDeckVisual(deck);
     }
 
     currentTurn = "Player";
     document.getElementById("first-player").textContent = "It's your turn!";
   } else {
-    // Opponent cannot play a higher card, so they pick up the pile
-    opponentHand.push(middleCard); // Pick up the pile
-    middleCard = null; // Reset the middle card
+    opponentHand.push(middleCard);
+    middleCard = null;
     renderOpponentHand();
     renderMiddlePile();
 
-    // Opponent picks a card from the deck
-    if (deck.length > 0) {
-      const newCard = deck.shift();
-      opponentHand.push(newCard);
+    if (deck.length > 0 && opponentHand.length < 3) {
+      const drawn = deck.shift();
+      opponentHand.push(drawn);
       renderOpponentHand();
+      updateDeckVisual(deck);
     }
 
     currentTurn = "Player";
@@ -210,28 +204,15 @@ function createCardDiv(card) {
 }
 
 function drawCard() {
-  if (deck.length === 0) {
-    console.log("No more cards.");
-    return;
-  }
-
-  const handContainer = document.getElementById("shead-hand");
-  if (handContainer.children.length >= 3) {
-    console.log("Hand full.");
+  if (deck.length === 0) return;
+  if (playerHand.length >= 3) {
+    console.log("You already have 3 cards.");
     return;
   }
 
   const card = deck.shift();
-  const cardDiv = createCardDiv(card);
-  cardDiv.addEventListener("click", () => {
-    if (currentTurn !== "Player") return;
-    document.querySelectorAll("#shead-hand .card").forEach(c => c.classList.remove("selected"));
-    cardDiv.classList.add("selected");
-    selectedCard = { card, element: cardDiv };
-  });
-
-  handContainer.appendChild(cardDiv);
-  setTimeout(() => cardDiv.classList.add("revealed"), 100);
+  playerHand.push(card);
+  renderHand(playerHand);
   updateDeckVisual(deck);
 }
 
