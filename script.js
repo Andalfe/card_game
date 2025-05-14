@@ -9,10 +9,11 @@ const ranks = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"]
 const handSize = 3;
 let deck = [];
 let selectedCard = null;
-let middleCard = null;
-let currentTurn = "Player"; // Tracks turn
+let middlePile = [];
+let currentTurn = "Player";
 let opponentHand = [];
 let playerHand = [];
+let needsInitialDraw = false;
 
 function createDeck() {
   deck = [];
@@ -44,33 +45,31 @@ function dealHand() {
 
   const redRanks = ["3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"];
   let firstPlayer = null;
+  middlePile = [];
+  needsInitialDraw = false;
 
   for (let rank of redRanks) {
     let i = playerHand.findIndex(card => card.rank === rank && card.suit.color === "red");
     if (i !== -1) {
-      middleCard = playerHand.splice(i, 1)[0];
+      middlePile = [playerHand.splice(i, 1)[0]];
       firstPlayer = "Opponent";
       break;
     }
     let j = opponentHand.findIndex(card => card.rank === rank && card.suit.color === "red");
     if (j !== -1) {
-      middleCard = opponentHand.splice(j, 1)[0];
+      middlePile = [opponentHand.splice(j, 1)[0]];
       firstPlayer = "Player";
+      needsInitialDraw = true;
       break;
     }
   }
 
-  if (!middleCard) {
-    const blackThreeIndex = deck.findIndex(card => card.rank === "3" && card.suit.color === "black");
-    if (blackThreeIndex !== -1) {
-      deck = [...deck.slice(blackThreeIndex), ...deck.slice(0, blackThreeIndex)];
-    }
-    dealHand(); // restart
+  if (middlePile.length === 0) {
+    dealHand();
     return;
   }
 
   currentTurn = firstPlayer;
-
   document.getElementById("first-player").textContent = `${firstPlayer} go${firstPlayer === "Player" ? "" : "es"} first!`;
 
   renderHand(playerHand);
@@ -79,7 +78,13 @@ function dealHand() {
   updateDeckVisual(deck);
 
   if (currentTurn === "Opponent") {
-    setTimeout(opponentPlay, 600);  // Start opponent's turn automatically after a delay
+    if (opponentHand.length < 3 && deck.length > 0) {
+      const card = deck.shift();
+      opponentHand.push(card);
+      renderOpponentHand();
+      updateDeckVisual(deck);
+    }
+    setTimeout(opponentPlay, 600);
   }
 }
 
@@ -102,7 +107,7 @@ function renderHand(cards) {
 function renderOpponentHand() {
   const container = document.getElementById("opponent-hand");
   container.innerHTML = "";
-  opponentHand.forEach((_, index) => {
+  opponentHand.forEach(() => {
     const back = document.createElement("div");
     back.className = "card-back revealed";
     container.appendChild(back);
@@ -110,115 +115,115 @@ function renderOpponentHand() {
 }
 
 function renderMiddlePile() {
-  const middlePile = document.getElementById("middle-pile");
-  middlePile.innerHTML = "";
-  if (middleCard) {
-    const cardDiv = createCardDiv(middleCard);
-    middlePile.appendChild(cardDiv);
+  const middlePileDiv = document.getElementById("middle-pile");
+  middlePileDiv.innerHTML = "";
+
+  if (middlePile.length > 0) {
+    const topCard = middlePile[middlePile.length - 1];
+    const cardDiv = createCardDiv(topCard);
+    middlePileDiv.appendChild(cardDiv);
   }
 
-  middlePile.onclick = () => {
-    if (currentTurn !== "Player" || !selectedCard || !middleCard) return;
+  middlePileDiv.onclick = () => {
+    if (currentTurn !== "Player" || !selectedCard || middlePile.length === 0) return;
 
     const selectedRankVal = rankValue(selectedCard.card.rank);
-    const middleRankVal = rankValue(middleCard.rank);
+    const middleRankVal = rankValue(middlePile[middlePile.length - 1].rank);
 
     if (selectedRankVal >= middleRankVal) {
-      middleCard = selectedCard.card;
+      middlePile.push(selectedCard.card);
       selectedCard.element.remove();
-      playerHand = playerHand.filter(c => c !== middleCard);
+      playerHand = playerHand.filter(c => c !== selectedCard.card);
       renderHand(playerHand);
       selectedCard = null;
       renderMiddlePile();
 
-      // Player must pick up a card from the deck if they don't have 3 cards after playing.
       if (playerHand.length < 3 && deck.length > 0) {
-        const drawn = deck.shift();
-        playerHand.push(drawn);
+        // Don't change turn yet — player must manually draw
+      } else {
+        currentTurn = "Opponent";
+        document.getElementById("first-player").textContent = "Opponent goes next!";
+        setTimeout(opponentPlay, 800);
+      }
+    } else {
+      // Player can't play a higher card - pick up the middle pile
+      playerHand.push(...middlePile);
+      middlePile = [];
+      renderHand(playerHand);
+      renderMiddlePile();
+      selectedCard = null;
+      
+      // Draw to maintain hand size if needed
+      while (playerHand.length < 3 && deck.length > 0) {
+        const newCard = deck.shift();
+        playerHand.push(newCard);
         renderHand(playerHand);
         updateDeckVisual(deck);
       }
-
-      // Change turn to opponent after player plays and picks up a card
+      
       currentTurn = "Opponent";
       document.getElementById("first-player").textContent = "Opponent goes next!";
       setTimeout(opponentPlay, 800);
-    } else {
-      alert("That card is not higher than the middle card.");
     }
   };
 }
 
 function opponentPlay() {
-  if (opponentHand.length < 3) {
-    // Opponent can't play unless they have 3 cards, so wait until the player draws
-    currentTurn = "Player";
-    document.getElementById("first-player").textContent = "It's your turn!";
-    return;
-  }
+  const topCard = middlePile[middlePile.length - 1];
+  const topVal = rankValue(topCard.rank);
 
-  const middleVal = rankValue(middleCard.rank);
-  const playable = opponentHand.filter(card => rankValue(card.rank) >= middleVal);
+  // Find all playable cards
+  const playable = opponentHand.filter(card => rankValue(card.rank) > topVal);
 
   if (playable.length > 0) {
-    // Choose lowest higher card
+    // Play the smallest valid card
     playable.sort((a, b) => rankValue(a.rank) - rankValue(b.rank));
     const chosen = playable[0];
 
     opponentHand = opponentHand.filter(c => c !== chosen);
-    middleCard = chosen;
+    middlePile.push(chosen);
+
     renderOpponentHand();
     renderMiddlePile();
 
-    // Opponent picks a card from the deck automatically
+    // Draw to maintain hand size
     if (opponentHand.length < 3 && deck.length > 0) {
       const newCard = deck.shift();
       opponentHand.push(newCard);
       renderOpponentHand();
+      updateDeckVisual(deck);
     }
-
-    currentTurn = "Player";  // Change turn back to player
-    document.getElementById("first-player").textContent = "It's your turn!";
   } else {
-    // Opponent cannot play a higher card, so they pick up the pile
-    opponentHand.push(middleCard); // Pick up the pile
-    middleCard = null; // Reset the middle card
+    // Opponent can't play - pick up the middle pile
+    opponentHand.push(...middlePile);
+    middlePile = [];
     renderOpponentHand();
     renderMiddlePile();
 
-    // Opponent picks a card from the deck automatically
-    if (opponentHand.length < 3 && deck.length > 0) {
+    // Draw to maintain hand size
+    while (opponentHand.length < 3 && deck.length > 0) {
       const newCard = deck.shift();
       opponentHand.push(newCard);
       renderOpponentHand();
+      updateDeckVisual(deck);
     }
-
-    currentTurn = "Player";  // Change turn back to player
-    document.getElementById("first-player").textContent = "It's your turn!";
   }
+
+  // Switch turns
+  currentTurn = "Player";
+  document.getElementById("first-player").textContent = "It's your turn!";
 }
 
-function createCardDiv(card) {
-  const div = document.createElement("div");
-  div.className = `card revealed ${card.suit.color === "red" ? "red" : ""}`;
-  div.innerHTML = `
-    <div class="corner top-left">${card.rank}${card.suit.symbol}</div>
-    <div class="suit">${card.suit.symbol}</div>
-    <div class="corner bottom-right">${card.rank}${card.suit.symbol}</div>
-  `;
-  return div;
-}
-
-// Allow player to manually pick up from deck
 document.getElementById("deck").addEventListener("click", () => {
   if (currentTurn === "Player" && playerHand.length < 3 && deck.length > 0) {
     const card = deck.shift();
     playerHand.push(card);
     renderHand(playerHand);
     updateDeckVisual(deck);
+    renderMiddlePile();
 
-    // ✅ Now opponent can take their turn
-    if (playerHand.length >= 3) {
+    if (needsInitialDraw || playerHand.length === 3) {
+      needsInitialDraw = false;
       currentTurn = "Opponent";
       document.getElementById("first-player").textContent = "Opponent goes next!";
       setTimeout(opponentPlay, 800);
@@ -247,3 +252,16 @@ function updateDeckVisual(currentDeck) {
     deckContainer.classList.add("revealed");
   }, 200);
 }
+
+function createCardDiv(card) {
+  const div = document.createElement("div");
+  div.className = `card revealed ${card.suit.color === "red" ? "red" : ""}`;
+  div.innerHTML = `
+    <div class="corner top-left">${card.rank}${card.suit.symbol}</div>
+    <div class="suit">${card.suit.symbol}</div>
+    <div class="corner bottom-right">${card.rank}${card.suit.symbol}</div>
+  `;
+  return div;
+}
+
+dealHand();
