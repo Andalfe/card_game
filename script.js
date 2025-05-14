@@ -121,9 +121,11 @@ function renderHand(cards) {
           if (isSelected) {
             cardDiv.classList.remove("selected", "enlarged");
             selectedCards = selectedCards.filter(sel => sel.element !== cardDiv);
-          } else if (selectedCards.length < 2) {
+          } else if (selectedCards.length < 4) { // Allow selection up to 4 cards
             cardDiv.classList.add("selected", "enlarged");
             selectedCards.push({ card, element: cardDiv });
+          } else {
+            alert("You can select a maximum of four cards at a time.");
           }
         }, 300);
       } else if (clickCount === 2) {
@@ -138,13 +140,17 @@ function renderHand(cards) {
   });
 }
 
-function playSingleCardWithDoubleClick(card, cardElement) {
-  if (currentTurn === "Player" && !waitingForDraw && middlePile.length > 0) {
-    const topCard = middlePile[middlePile.length - 1];
-    const topRankVal = rankValue(topCard.rank);
-    const selectedRankVal = rankValue(card.rank);
+function canPlayCard(card) {
+  if (middlePile.length === 0) {
+    return true; // Can always play on an empty pile
+  }
+  const topCard = middlePile[middlePile.length - 1];
+  return rankValue(card.rank) >= rankValue(topCard.rank);
+}
 
-    if (selectedRankVal >= topRankVal) {
+function playSingleCardWithDoubleClick(card, cardElement) {
+  if (currentTurn === "Player" && !waitingForDraw) {
+    if (middlePile.length === 0 || canPlayCard(card)) {
       middlePile.push(card);
       playerHand = playerHand.filter(c => c !== card);
       cardElement.remove();
@@ -158,50 +164,55 @@ function playSingleCardWithDoubleClick(card, cardElement) {
         endPlayerTurn();
       }
     } else {
-      const hasHigherCard = playerHand.some(c => rankValue(c.rank) > topRankVal);
-      if (hasHigherCard) incorrectMoveSound.play();
-
-      playerHand.push(...middlePile);
-      middlePile = [];
-      renderHand(playerHand);
-      renderMiddlePile();
-      while (playerHand.length < 3 && deck.length > 0) {
-        playerHand.push(deck.shift());
+      // Check if there's any higher card the player could have played
+      const hasHigherCard = playerHand.some(c => rankValue(c.rank) > rankValue(middlePile[middlePile.length - 1].rank));
+      if (hasHigherCard) {
+        triggerPickup();
+      } else {
+        // If no higher card, allow the pickup without the sound
+        playerHand.push(...middlePile);
+        middlePile = [];
+        renderHand(playerHand);
+        renderMiddlePile();
+        while (playerHand.length < 3 && deck.length > 0) {
+          playerHand.push(deck.shift());
+        }
+        renderHand(playerHand);
+        updateDeckVisual(deck);
+        endPlayerTurn();
       }
-      renderHand(playerHand);
-      updateDeckVisual(deck);
-      endPlayerTurn();
-    }
-  } else if (currentTurn === "Player" && !waitingForDraw && middlePile.length === 0) {
-    middlePile.push(card);
-    playerHand = playerHand.filter(c => c !== card);
-    cardElement.remove();
-    renderHand(playerHand);
-    renderMiddlePile();
-    selectedCards = [];
-    if (playerHand.length < 3 && deck.length > 0) {
-      waitingForDraw = true;
-      document.getElementById("first-player").textContent = "Click the deck to draw.";
-    } else {
-      endPlayerTurn();
     }
   }
 }
 
+function triggerPickup() {
+  incorrectMoveSound.play();
+  playerHand.push(...middlePile);
+  middlePile = [];
+  renderHand(playerHand);
+  renderMiddlePile();
+  while (playerHand.length < 3 && deck.length > 0) {
+    playerHand.push(deck.shift());
+  }
+  renderHand(playerHand);
+  updateDeckVisual(deck);
+  endPlayerTurn();
+}
+
 function handlePlayOnMiddlePile() {
-  if (currentTurn !== "Player" || waitingForDraw || middlePile.length === 0 || selectedCards.length === 0) return;
+  if (currentTurn !== "Player" || waitingForDraw || selectedCards.length === 0) return;
 
-  const topCard = middlePile[middlePile.length - 1];
-  const topRankVal = rankValue(topCard.rank);
+  if (middlePile.length === 0) {
+    // Playing on an empty pile: must select at least one card of the same rank
+    const firstRank = selectedCards[0].card.rank;
+    const allSameRank = selectedCards.every(sel => sel.card.rank === firstRank);
 
-  if (selectedCards.length === 1) {
-    const { card, element } = selectedCards[0];
-    const selectedRankVal = rankValue(card.rank);
-
-    if (selectedRankVal >= topRankVal) {
-      middlePile.push(card);
-      playerHand = playerHand.filter(c => c !== card);
-      element.remove();
+    if (allSameRank) {
+      selectedCards.forEach(({ card, element }) => {
+        middlePile.push(card);
+        playerHand = playerHand.filter(c => c !== card);
+        element.remove();
+      });
       renderHand(playerHand);
       renderMiddlePile();
       selectedCards = [];
@@ -211,26 +222,35 @@ function handlePlayOnMiddlePile() {
       } else {
         endPlayerTurn();
       }
-    } else {
-      const hasHigherCard = playerHand.some(c => rankValue(c.rank) > topRankVal);
-      if (hasHigherCard) incorrectMoveSound.play();
-
-      playerHand.push(...middlePile);
-      middlePile = [];
-      renderHand(playerHand);
-      renderMiddlePile();
-      while (playerHand.length < 3 && deck.length > 0) {
-        playerHand.push(deck.shift());
+    } else if (selectedCards.length > 0) {
+      // Check if there's any higher card the player could have played
+      const hasHigherCard = playerHand.some(c => rankValue(c.rank) > -1); // Always false on empty pile?
+      if (hasHigherCard) {
+        triggerPickup();
+      } else {
+        playerHand.push(...middlePile);
+        middlePile = [];
+        renderHand(playerHand);
+        renderMiddlePile();
+        while (playerHand.length < 3 && deck.length > 0) {
+          playerHand.push(deck.shift());
+        }
+        renderHand(playerHand);
+        updateDeckVisual(deck);
+        endPlayerTurn();
       }
-      renderHand(playerHand);
-      updateDeckVisual(deck);
-      endPlayerTurn();
     }
-  } else if (selectedCards.length === 2) {
-    const [card1, card2] = selectedCards.map(s => s.card);
-    if (card1.rank === card2.rank) {
-      const selectedRankVal = rankValue(card1.rank);
-      if (selectedRankVal >= topRankVal) {
+  } else {
+    // Playing on a non-empty middle pile
+    const topCard = middlePile[middlePile.length - 1];
+    const topRankVal = rankValue(topCard.rank);
+
+    const firstSelectedRank = selectedCards[0].card.rank;
+    const allSameRankSelected = selectedCards.every(sel => sel.card.rank === firstSelectedRank);
+
+    if (allSameRankSelected) {
+      const firstSelectedRankVal = rankValue(firstSelectedRank);
+      if (firstSelectedRankVal >= topRankVal) {
         selectedCards.forEach(({ card, element }) => {
           middlePile.push(card);
           playerHand = playerHand.filter(c => c !== card);
@@ -241,19 +261,49 @@ function handlePlayOnMiddlePile() {
         selectedCards = [];
         if (playerHand.length < 3 && deck.length > 0) {
           waitingForDraw = true;
-          document.getElementById("first-player").textContent = "Click the deck to draw two cards.";
+          document.getElementById("first-player").textContent = `Click the deck to draw ${3 - playerHand.length} card(s).`;
         } else {
           endPlayerTurn();
         }
       } else {
+        // Check if there's any higher card the player could have played
         const hasHigherCard = playerHand.some(c => rankValue(c.rank) > topRankVal);
-        if (hasHigherCard) incorrectMoveSound.play();
+        if (hasHigherCard) {
+          triggerPickup();
+        } else {
+          playerHand.push(...middlePile);
+          middlePile = [];
+          renderHand(playerHand);
+          renderMiddlePile();
+          while (playerHand.length < 3 && deck.length > 0) {
+            playerHand.push(deck.shift());
+          }
+          renderHand(playerHand);
+          updateDeckVisual(deck);
+          endPlayerTurn();
+        }
       }
-    } else {
-      alert("You must select two cards of the same rank to play a pair.");
+    } else if (selectedCards.length > 0) {
+      // Check if there's any higher card the player could have played
+      const hasHigherCard = playerHand.some(c => rankValue(c.rank) > topRankVal);
+      if (hasHigherCard) {
+        triggerPickup();
+      } else {
+        playerHand.push(...middlePile);
+        middlePile = [];
+        renderHand(playerHand);
+        renderMiddlePile();
+        while (playerHand.length < 3 && deck.length > 0) {
+          playerHand.push(deck.shift());
+        }
+        renderHand(playerHand);
+        updateDeckVisual(deck);
+        endPlayerTurn();
+      }
     }
   }
 
+  // Deselect cards after attempting to play (valid or invalid)
   selectedCards.forEach(({ element }) => element.classList.remove("selected", "enlarged"));
   selectedCards = [];
 }
@@ -379,10 +429,10 @@ function createCardDiv(card) {
   const div = document.createElement("div");
   div.className = `card revealed ${card.suit.color === "red" ? "red" : ""}`;
   div.innerHTML = `
-    <div class="corner top-left">${card.rank}${card.suit.symbol}</div>
-    <div class="suit">${card.suit.symbol}</div>
-    <div class="corner bottom-right">${card.rank}${card.suit.symbol}</div>
-  `;
+        <div class="corner top-left">${card.rank}${card.suit.symbol}</div>
+        <div class="suit">${card.suit.symbol}</div>
+        <div class="corner bottom-right">${card.rank}${card.suit.symbol}</div>
+    `;
   return div;
 }
 
