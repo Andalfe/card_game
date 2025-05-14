@@ -267,6 +267,15 @@ function opponentPlay() {
       renderOpponentHand();
       renderMiddlePile();
     }
+  } else if (middlePile.length === 0 && currentTurn === "Opponent") {
+    // If the middle pile is empty, play any card (this handles the case after the player picks up)
+    if (opponentHand.length > 0) {
+      const cardToPlay = opponentHand.shift(); // Play the first card
+      middlePile.push(cardToPlay);
+      renderOpponentHand();
+      renderMiddlePile();
+      playMade = true;
+    }
   }
 
   if (!playMade && middlePile.length > 0) {
@@ -276,11 +285,18 @@ function opponentPlay() {
     renderOpponentHand();
     renderMiddlePile();
     playMade = true;
+
+    // Draw after picking up to get back to 3 cards if possible
+    while (opponentHand.length < 3 && deck.length > 0) {
+      const newCard = deck.shift();
+      opponentHand.push(newCard);
+      renderOpponentHand();
+      updateDeckVisual(deck);
+    }
   }
 
   // Switch turns
   currentTurn = "Player";
-  initialCardPlayed = false;
   document.getElementById("first-player").textContent = "It's your turn!";
 }
 
