@@ -8,14 +8,16 @@ const suits = [
 const ranks = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"];
 const handSize = 3;
 let deck = [];
-let selectedCard = null;
+let selectedCards = [];
 let middlePile = [];
 let currentTurn = "Player";
 let opponentHand = [];
 let playerHand = [];
 let needsInitialDraw = false;
 let initialCardPlayed = false;
-let waitingForDraw = false; // New flag
+let waitingForDraw = false;
+let incorrectMoveSound = new Audio('sounds/fuck_up_pick_up.mp3');
+let opponentInitialTurn = true;
 
 function createDeck() {
   deck = [];
@@ -50,7 +52,8 @@ function dealHand() {
   middlePile = [];
   needsInitialDraw = false;
   initialCardPlayed = false;
-  waitingForDraw = false; // Initialize
+  waitingForDraw = false;
+  opponentInitialTurn = true;
 
   for (let rank of redRanks) {
     let i = playerHand.findIndex(card => card.rank === rank && card.suit.color === "red");
@@ -70,11 +73,6 @@ function dealHand() {
     }
   }
 
-  if (middlePile.length === 0) {
-    dealHand();
-    return;
-  }
-
   currentTurn = firstPlayer;
   document.getElementById("first-player").textContent = `${firstPlayer} go${firstPlayer === "Player" ? "" : "es"} first!`;
 
@@ -84,98 +82,181 @@ function dealHand() {
   updateDeckVisual(deck);
 
   if (currentTurn === "Opponent") {
-    if (opponentHand.length < 3 && deck.length > 0) {
-      const card = deck.shift();
-      opponentHand.push(card);
-      renderOpponentHand();
-      updateDeckVisual(deck);
-    }
-    setTimeout(opponentPlay, 600);
+    setTimeout(() => {
+      if (opponentInitialTurn) {
+        opponentInitialTurn = false;
+        if (opponentHand.length < 3 && deck.length > 0) {
+          opponentHand.push(deck.shift());
+          renderOpponentHand();
+          updateDeckVisual(deck);
+        }
+        currentTurn = "Player";
+        document.getElementById("first-player").textContent = "It's your turn!";
+      } else {
+        opponentPlay();
+      }
+    }, 800);
   }
 }
 
 function renderHand(cards) {
   const handContainer = document.getElementById("shead-hand");
   handContainer.innerHTML = "";
-  cards.forEach((card, index) => {
+
+  const sortedHand = [...cards].sort((a, b) => rankValue(a.rank) - rankValue(b.rank));
+
+  sortedHand.forEach((card, index) => {
     const cardDiv = createCardDiv(card);
     let clickCount = 0;
     let timer;
 
     cardDiv.addEventListener("click", () => {
-      if (currentTurn !== "Player" || waitingForDraw) return; // Disable card clicks while waiting to draw
-      document.querySelectorAll("#shead-hand .card").forEach(c => c.classList.remove("selected"));
-      cardDiv.classList.add("selected");
-      selectedCard = { card, element: cardDiv };
+      if (currentTurn !== "Player" || waitingForDraw) return;
 
       clickCount++;
       if (clickCount === 1) {
         timer = setTimeout(() => {
-          clickCount = 0; // Reset after a delay if not a double-click
-        }, 300); // Adjust the delay for double-click as needed
+          clickCount = 0;
+          const isSelected = selectedCards.some(sel => sel.element === cardDiv);
+          if (isSelected) {
+            cardDiv.classList.remove("selected", "enlarged");
+            selectedCards = selectedCards.filter(sel => sel.element !== cardDiv);
+          } else if (selectedCards.length < 2) {
+            cardDiv.classList.add("selected", "enlarged");
+            selectedCards.push({ card, element: cardDiv });
+          }
+        }, 300);
       } else if (clickCount === 2) {
         clearTimeout(timer);
         clickCount = 0;
-        handleDoubleClick(card, cardDiv);
+        playSingleCardWithDoubleClick(card, cardDiv);
       }
     });
+
     handContainer.appendChild(cardDiv);
     setTimeout(() => cardDiv.classList.add("revealed"), index * 100);
   });
 }
 
+function playSingleCardWithDoubleClick(card, cardElement) {
+  if (currentTurn === "Player" && !waitingForDraw && middlePile.length > 0) {
+    const topCard = middlePile[middlePile.length - 1];
+    const topRankVal = rankValue(topCard.rank);
+    const selectedRankVal = rankValue(card.rank);
 
-
-let incorrectMoveSound = new Audio('sounds/fuck_up_pick_up.mp3'); // Create an Audio object
-
-
-function handleDoubleClick(card, cardElement) {
-  if (currentTurn === "Player" && !waitingForDraw) {
-    const playCard = () => {
+    if (selectedRankVal >= topRankVal) {
       middlePile.push(card);
-      cardElement.remove();
       playerHand = playerHand.filter(c => c !== card);
+      cardElement.remove();
       renderHand(playerHand);
       renderMiddlePile();
-      selectedCard = null;
+      selectedCards = [];
       if (playerHand.length < 3 && deck.length > 0) {
         waitingForDraw = true;
         document.getElementById("first-player").textContent = "Click the deck to draw.";
       } else {
         endPlayerTurn();
       }
-    };
-
-    if (middlePile.length === 0) {
-      playCard(); // Any card can start an empty pile
     } else {
-      const selectedRankVal = rankValue(card.rank);
-      const middleRankVal = rankValue(middlePile[middlePile.length - 1].rank);
+      const hasHigherCard = playerHand.some(c => rankValue(c.rank) > topRankVal);
+      if (hasHigherCard) incorrectMoveSound.play();
 
-      if (selectedRankVal >= middleRankVal) {
-        playCard(); // Valid play
-      } else {
-        // Invalid play - trigger sound and pick up the middle pile
-        incorrectMoveSound.play(); // Play the sound
-        playerHand.push(...middlePile);
-        middlePile = [];
-        renderHand(playerHand);
-        renderMiddlePile();
-        selectedCard = null;
-        // Player might need to draw after picking up
-        while (playerHand.length < 3 && deck.length > 0) {
-          const newCard = deck.shift();
-          playerHand.push(newCard);
-          renderHand(playerHand);
-          updateDeckVisual(deck);
-        }
-        endPlayerTurn(); // End the turn after picking up
+      playerHand.push(...middlePile);
+      middlePile = [];
+      renderHand(playerHand);
+      renderMiddlePile();
+      while (playerHand.length < 3 && deck.length > 0) {
+        playerHand.push(deck.shift());
       }
+      renderHand(playerHand);
+      updateDeckVisual(deck);
+      endPlayerTurn();
+    }
+  } else if (currentTurn === "Player" && !waitingForDraw && middlePile.length === 0) {
+    middlePile.push(card);
+    playerHand = playerHand.filter(c => c !== card);
+    cardElement.remove();
+    renderHand(playerHand);
+    renderMiddlePile();
+    selectedCards = [];
+    if (playerHand.length < 3 && deck.length > 0) {
+      waitingForDraw = true;
+      document.getElementById("first-player").textContent = "Click the deck to draw.";
+    } else {
+      endPlayerTurn();
     }
   }
 }
 
+function handlePlayOnMiddlePile() {
+  if (currentTurn !== "Player" || waitingForDraw || middlePile.length === 0 || selectedCards.length === 0) return;
 
+  const topCard = middlePile[middlePile.length - 1];
+  const topRankVal = rankValue(topCard.rank);
+
+  if (selectedCards.length === 1) {
+    const { card, element } = selectedCards[0];
+    const selectedRankVal = rankValue(card.rank);
+
+    if (selectedRankVal >= topRankVal) {
+      middlePile.push(card);
+      playerHand = playerHand.filter(c => c !== card);
+      element.remove();
+      renderHand(playerHand);
+      renderMiddlePile();
+      selectedCards = [];
+      if (playerHand.length < 3 && deck.length > 0) {
+        waitingForDraw = true;
+        document.getElementById("first-player").textContent = "Click the deck to draw.";
+      } else {
+        endPlayerTurn();
+      }
+    } else {
+      const hasHigherCard = playerHand.some(c => rankValue(c.rank) > topRankVal);
+      if (hasHigherCard) incorrectMoveSound.play();
+
+      playerHand.push(...middlePile);
+      middlePile = [];
+      renderHand(playerHand);
+      renderMiddlePile();
+      while (playerHand.length < 3 && deck.length > 0) {
+        playerHand.push(deck.shift());
+      }
+      renderHand(playerHand);
+      updateDeckVisual(deck);
+      endPlayerTurn();
+    }
+  } else if (selectedCards.length === 2) {
+    const [card1, card2] = selectedCards.map(s => s.card);
+    if (card1.rank === card2.rank) {
+      const selectedRankVal = rankValue(card1.rank);
+      if (selectedRankVal >= topRankVal) {
+        selectedCards.forEach(({ card, element }) => {
+          middlePile.push(card);
+          playerHand = playerHand.filter(c => c !== card);
+          element.remove();
+        });
+        renderHand(playerHand);
+        renderMiddlePile();
+        selectedCards = [];
+        if (playerHand.length < 3 && deck.length > 0) {
+          waitingForDraw = true;
+          document.getElementById("first-player").textContent = "Click the deck to draw two cards.";
+        } else {
+          endPlayerTurn();
+        }
+      } else {
+        const hasHigherCard = playerHand.some(c => rankValue(c.rank) > topRankVal);
+        if (hasHigherCard) incorrectMoveSound.play();
+      }
+    } else {
+      alert("You must select two cards of the same rank to play a pair.");
+    }
+  }
+
+  selectedCards.forEach(({ element }) => element.classList.remove("selected", "enlarged"));
+  selectedCards = [];
+}
 
 function renderOpponentHand() {
   const container = document.getElementById("opponent-hand");
@@ -190,137 +271,84 @@ function renderOpponentHand() {
 function renderMiddlePile() {
   const middlePileDiv = document.getElementById("middle-pile");
   middlePileDiv.innerHTML = "";
-
-  if (middlePile.length > 0) {
-    const topCard = middlePile[middlePile.length - 1];
-    const cardDiv = createCardDiv(topCard);
+  middlePileDiv.addEventListener("click", handlePlayOnMiddlePile);
+  middlePile.forEach(card => {
+    const cardDiv = createCardDiv(card);
     middlePileDiv.appendChild(cardDiv);
-  }
-
-  middlePileDiv.onclick = () => {
-    if (currentTurn !== "Player" || !selectedCard || middlePile.length === 0 || waitingForDraw) return;
-
-    const selectedRankVal = rankValue(selectedCard.card.rank);
-    const middleRankVal = rankValue(middlePile[middlePile.length - 1].rank);
-
-    if (selectedRankVal >= middleRankVal) {
-      middlePile.push(selectedCard.card);
-      selectedCard.element.remove();
-      playerHand = playerHand.filter(c => c !== selectedCard.card);
-      renderHand(playerHand);
-      selectedCard = null;
-      renderMiddlePile();
-
-      // After playing a card, check if we need to draw
-      if (playerHand.length < 3 && deck.length > 0) {
-        waitingForDraw = true;
-        document.getElementById("first-player").textContent = "Click the deck to draw.";
-      } else {
-        endPlayerTurn();
-      }
-    } else {
-      // Player can't play a higher card - pick up the middle pile
-      playerHand.push(...middlePile);
-      middlePile = [];
-      renderHand(playerHand);
-      renderMiddlePile();
-      selectedCard = null;
-
-      // Draw to maintain hand size if needed
-      while (playerHand.length < 3 && deck.length > 0) {
-        const newCard = deck.shift();
-        playerHand.push(newCard);
-        renderHand(playerHand);
-        updateDeckVisual(deck);
-      }
-
-      endPlayerTurn();
-    }
-  };
+  });
 }
 
 function endPlayerTurn() {
   currentTurn = "Opponent";
   document.getElementById("first-player").textContent = "Opponent goes next!";
   initialCardPlayed = false;
-  waitingForDraw = false; // Reset the flag
-  setTimeout(opponentPlay, 800);
+  waitingForDraw = false;
+  setTimeout(() => {
+    opponentPlay();
+    if (opponentHand.length < 3 && deck.length > 0) {
+      opponentHand.push(deck.shift());
+      renderOpponentHand();
+      updateDeckVisual(deck);
+    }
+    currentTurn = "Player";
+    document.getElementById("first-player").textContent = "It's your turn!";
+  }, 800);
 }
 
 function opponentPlay() {
-  // Draw at the start of the turn if hand is less than 3
   while (opponentHand.length < 3 && deck.length > 0) {
-    const newCard = deck.shift();
-    opponentHand.push(newCard);
+    opponentHand.push(deck.shift());
     renderOpponentHand();
     updateDeckVisual(deck);
   }
 
-  const topCard = middlePile.length > 0 ? middlePile[middlePile.length - 1] : null;
+  const topCard = middlePile[middlePile.length - 1] || null;
   let playMade = false;
 
   if (topCard) {
     const topVal = rankValue(topCard.rank);
     const playable = opponentHand.filter(card => rankValue(card.rank) > topVal);
-
     if (playable.length > 0) {
-      // Play the smallest valid card
-      playable.sort((a, b) => rankValue(a.rank) - rankValue(b.rank));
-      const chosen = playable[0];
-
+      const chosen = playable.sort((a, b) => rankValue(a.rank) - rankValue(b.rank))[0];
       opponentHand = opponentHand.filter(c => c !== chosen);
       middlePile.push(chosen);
       playMade = true;
-
       renderOpponentHand();
       renderMiddlePile();
     }
-  } else if (middlePile.length === 0 && currentTurn === "Opponent") {
-    // If the middle pile is empty, play any card (this handles the case after the player picks up)
-    if (opponentHand.length > 0) {
-      const cardToPlay = opponentHand.shift(); // Play the first card
-      middlePile.push(cardToPlay);
-      renderOpponentHand();
-      renderMiddlePile();
-      playMade = true;
-    }
+  } else if (middlePile.length === 0 && opponentHand.length > 0) {
+    middlePile.push(opponentHand.shift());
+    playMade = true;
+    renderOpponentHand();
+    renderMiddlePile();
   }
 
   if (!playMade && middlePile.length > 0) {
-    // Opponent can't play - pick up the middle pile
     opponentHand.push(...middlePile);
     middlePile = [];
     renderOpponentHand();
     renderMiddlePile();
-    playMade = true;
 
-    // Draw after picking up to get back to 3 cards if possible
     while (opponentHand.length < 3 && deck.length > 0) {
-      const newCard = deck.shift();
-      opponentHand.push(newCard);
-      renderOpponentHand();
-      updateDeckVisual(deck);
+      opponentHand.push(deck.shift());
     }
+    renderOpponentHand();
+    updateDeckVisual(deck);
   }
-
-  // Switch turns
-  currentTurn = "Player";
-  document.getElementById("first-player").textContent = "It's your turn!";
 }
 
 document.getElementById("deck").addEventListener("click", () => {
-  if (currentTurn === "Player" && waitingForDraw && playerHand.length < 3 && deck.length > 0) {
-    const card = deck.shift();
-    playerHand.push(card);
+  if (currentTurn === "Player" && waitingForDraw) {
+    while (playerHand.length < 3 && deck.length > 0) {
+      playerHand.push(deck.shift());
+    }
     renderHand(playerHand);
     updateDeckVisual(deck);
     renderMiddlePile();
-    waitingForDraw = false; // Reset the flag after drawing
-    endPlayerTurn(); // Now end the turn
+    waitingForDraw = false;
+    endPlayerTurn();
   } else if (currentTurn === "Player" && playerHand.length < 3 && deck.length > 0 && !waitingForDraw) {
-    // Normal draw if not waiting after playing
-    const card = deck.shift();
-    playerHand.push(card);
+    playerHand.push(deck.shift());
     renderHand(playerHand);
     updateDeckVisual(deck);
     renderMiddlePile();
@@ -331,7 +359,6 @@ document.getElementById("deck").addEventListener("click", () => {
 function updateDeckVisual(currentDeck) {
   const deckContainer = document.getElementById("deck");
   deckContainer.innerHTML = "";
-
   currentDeck.forEach((_, i) => {
     const back = document.createElement("div");
     back.className = "card-back";
@@ -341,9 +368,7 @@ function updateDeckVisual(currentDeck) {
   });
 
   const backs = deckContainer.querySelectorAll(".card-back");
-  if (backs.length > 0) {
-    backs[backs.length - 1].classList.add("top-card");
-  }
+  if (backs.length > 0) backs[backs.length - 1].classList.add("top-card");
 
   setTimeout(() => {
     deckContainer.classList.add("revealed");
@@ -361,4 +386,5 @@ function createCardDiv(card) {
   return div;
 }
 
+// 🚀 Start the game
 dealHand();

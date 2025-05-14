@@ -100,7 +100,8 @@ button:hover {
 
 .deck {
   position: absolute;
-  top: 550px; /* Increased from 150px */
+  top: 550px;
+  /* Increased from 150px */
   right: 30px;
   width: 80px;
   height: 120px;
@@ -216,7 +217,7 @@ button:hover {
   left: 50%;
   transform: translate(-50%, -50%);
   z-index: 10;
-  display: flex;
+  display: flex; /* Use flexbox for centering */
   justify-content: center;
   align-items: center;
 }
@@ -229,6 +230,12 @@ button:hover {
   border-radius: 6px;
   padding: 5px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  position: absolute; /* Allow overlapping */
+}
+
+.middle-pile .card:nth-child(n+2) {
+  /* Offset subsequent cards to create a stack effect */
+  transform: translate(5px, 5px); /* Adjust the offset as needed */
 }
 
 .middle-pile .card.red {
@@ -240,4 +247,19 @@ button:hover {
   color: gold;
   text-align: center;
   margin-bottom: 10px;
+}
+
+.card.selected {
+  border: 2px solid blue;
+}
+
+.card.enlarged {
+  transform: scale(1.1);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  z-index: 10;
+}
+
+#middle-pile {
+  cursor: pointer; /* Indicate it's clickable */
+  /* Add any other styling for the middle pile container */
 }
