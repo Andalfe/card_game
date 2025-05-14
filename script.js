@@ -14,6 +14,7 @@ let currentTurn = "Player";
 let opponentHand = [];
 let playerHand = [];
 let needsInitialDraw = false;
+let initialCardPlayed = false;
 
 function createDeck() {
   deck = [];
@@ -47,19 +48,22 @@ function dealHand() {
   let firstPlayer = null;
   middlePile = [];
   needsInitialDraw = false;
+  initialCardPlayed = false;
 
   for (let rank of redRanks) {
     let i = playerHand.findIndex(card => card.rank === rank && card.suit.color === "red");
     if (i !== -1) {
       middlePile = [playerHand.splice(i, 1)[0]];
-      firstPlayer = "Opponent";
+      firstPlayer = "Player";
+      initialCardPlayed = true;
       break;
     }
     let j = opponentHand.findIndex(card => card.rank === rank && card.suit.color === "red");
     if (j !== -1) {
       middlePile = [opponentHand.splice(j, 1)[0]];
-      firstPlayer = "Player";
+      firstPlayer = "Opponent";
       needsInitialDraw = true;
+      initialCardPlayed = true;
       break;
     }
   }
@@ -138,12 +142,11 @@ function renderMiddlePile() {
       selectedCard = null;
       renderMiddlePile();
 
+      // After playing a card, check if we need to draw
       if (playerHand.length < 3 && deck.length > 0) {
-        // Don't change turn yet — player must manually draw
+        document.getElementById("first-player").textContent = "Play a card or draw to end your turn";
       } else {
-        currentTurn = "Opponent";
-        document.getElementById("first-player").textContent = "Opponent goes next!";
-        setTimeout(opponentPlay, 800);
+        endPlayerTurn();
       }
     } else {
       // Player can't play a higher card - pick up the middle pile
@@ -152,7 +155,7 @@ function renderMiddlePile() {
       renderHand(playerHand);
       renderMiddlePile();
       selectedCard = null;
-      
+
       // Draw to maintain hand size if needed
       while (playerHand.length < 3 && deck.length > 0) {
         const newCard = deck.shift();
@@ -160,57 +163,61 @@ function renderMiddlePile() {
         renderHand(playerHand);
         updateDeckVisual(deck);
       }
-      
-      currentTurn = "Opponent";
-      document.getElementById("first-player").textContent = "Opponent goes next!";
-      setTimeout(opponentPlay, 800);
+
+      endPlayerTurn();
     }
   };
 }
 
+function endPlayerTurn() {
+  currentTurn = "Opponent";
+  document.getElementById("first-player").textContent = "Opponent goes next!";
+  initialCardPlayed = false;
+  setTimeout(opponentPlay, 800);
+}
+
 function opponentPlay() {
-  const topCard = middlePile[middlePile.length - 1];
-  const topVal = rankValue(topCard.rank);
+  const topCard = middlePile.length > 0 ? middlePile[middlePile.length - 1] : null;
+  let playMade = false;
 
-  // Find all playable cards
-  const playable = opponentHand.filter(card => rankValue(card.rank) > topVal);
+  if (topCard) {
+    const topVal = rankValue(topCard.rank);
+    const playable = opponentHand.filter(card => rankValue(card.rank) > topVal);
 
-  if (playable.length > 0) {
-    // Play the smallest valid card
-    playable.sort((a, b) => rankValue(a.rank) - rankValue(b.rank));
-    const chosen = playable[0];
+    if (playable.length > 0) {
+      // Play the smallest valid card
+      playable.sort((a, b) => rankValue(a.rank) - rankValue(b.rank));
+      const chosen = playable[0];
 
-    opponentHand = opponentHand.filter(c => c !== chosen);
-    middlePile.push(chosen);
+      opponentHand = opponentHand.filter(c => c !== chosen);
+      middlePile.push(chosen);
+      playMade = true;
 
-    renderOpponentHand();
-    renderMiddlePile();
-
-    // Draw to maintain hand size
-    if (opponentHand.length < 3 && deck.length > 0) {
-      const newCard = deck.shift();
-      opponentHand.push(newCard);
       renderOpponentHand();
-      updateDeckVisual(deck);
+      renderMiddlePile();
     }
-  } else {
+  }
+
+  if (!playMade && middlePile.length > 0) {
     // Opponent can't play - pick up the middle pile
     opponentHand.push(...middlePile);
     middlePile = [];
     renderOpponentHand();
     renderMiddlePile();
-
-    // Draw to maintain hand size
-    while (opponentHand.length < 3 && deck.length > 0) {
-      const newCard = deck.shift();
-      opponentHand.push(newCard);
-      renderOpponentHand();
-      updateDeckVisual(deck);
-    }
+    playMade = true;
   }
 
-  // Switch turns
+  // After playing or picking up, draw if needed (and then end turn)
+  if ((initialCardPlayed || playMade) && opponentHand.length < 3 && deck.length > 0) {
+    const newCard = deck.shift();
+    opponentHand.push(newCard);
+    renderOpponentHand();
+    updateDeckVisual(deck);
+  }
+
+  // Switch turns only after the opponent has made their action (play or pick up) and drawn if necessary
   currentTurn = "Player";
+  initialCardPlayed = false;
   document.getElementById("first-player").textContent = "It's your turn!";
 }
 
@@ -222,12 +229,11 @@ document.getElementById("deck").addEventListener("click", () => {
     updateDeckVisual(deck);
     renderMiddlePile();
 
-    if (needsInitialDraw || playerHand.length === 3) {
+    if (needsInitialDraw) {
       needsInitialDraw = false;
-      currentTurn = "Opponent";
-      document.getElementById("first-player").textContent = "Opponent goes next!";
-      setTimeout(opponentPlay, 800);
+      document.getElementById("first-player").textContent = "Now play a card to end your turn";
     }
+    endPlayerTurn();
   }
 });
 
