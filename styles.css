@@ -2,12 +2,8 @@ body {
   margin: 0;
   height: 100vh;
   background: #0b3d0b;
-  display: flex;
-  justify-content: center;
-  align-items: flex-end;
   font-family: 'Segoe UI', sans-serif;
-  flex-direction: column;
-  position: relative;
+  position: relative; /* Needed for absolute positioning of children */
 }
 
 button {
@@ -28,6 +24,96 @@ button {
 
 button:hover {
   background-color: #f0f0f0;
+}
+
+.burn-pile {
+  position: relative; /* Changed from absolute to relative */
+  top: 50%;
+  left: 30px;
+  transform: translateY(-50%);
+  width: 80px;
+  height: 120px;
+  border: 2px dotted black;
+  border-radius: 10px;
+  background-color: transparent;
+  box-shadow: none;
+  display: block;
+}
+
+.burn-pile::before {
+  content: "Burn Pile";
+  position: absolute;
+  top: -20px;
+  font-size: 0.8em;
+  color: #ccc;
+}
+
+.burned-card {
+  position: absolute;
+  width: 80px; /* Match burn pile width */
+  height: 120px; /* Match burn pile height */
+  top: 0;
+  left: 0;
+  transform: rotate(0deg); /* Reset any default rotation */
+  margin: 0; /* Reset any default margins */
+  padding: 0; /* Reset any default padding */
+  display: block; /* Ensure it behaves as a block-level element within the absolute positioning */
+}
+
+.middle-pile {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-width: 80px;
+  min-height: 120px;
+  border-radius: 10px;
+}
+
+.middle-pile.empty {
+  border: 3px dashed yellow;
+  background-color: rgba(255, 255, 0, 0.1);
+  cursor: pointer;
+  position: absolute;
+  width: 80px;
+  height: 120px;
+  border-radius: 10px;
+  transition: box-shadow 0.3s ease-in-out, outline-color 0.3s ease-in-out;
+}
+
+.middle-pile.empty::before {
+  content: "Play Here";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 14px;
+  color: #aaa;
+  pointer-events: none;
+  user-select: none;
+}
+
+.middle-pile .card {
+  width: 80px;
+  height: 120px;
+  background: white;
+  border: 1px solid #333;
+  border-radius: 6px;
+  padding: 5px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  position: absolute;
+}
+
+.middle-pile .card:nth-child(n+2) {
+  transform: translate(5px, 5px);
+}
+
+.middle-pile .card.red {
+  color: red;
 }
 
 .shead-hand {
@@ -118,10 +204,10 @@ button:hover {
   width: 80px;
   height: 120px;
   background: repeating-linear-gradient(45deg,
-      #2b2b2b,
-      #2b2b2b 4px,
-      #444 4px,
-      #444 8px);
+    #2b2b2b,
+    #2b2b2b 4px,
+    #444 4px,
+    #444 8px);
   border: 2px solid #111;
   border-radius: 10px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
@@ -205,63 +291,6 @@ button:hover {
   z-index: 1;
 }
 
-.middle-pile {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 10;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-width: 80px;
-  min-height: 120px;
-  border-radius: 10px;
-}
-
-
-.middle-pile.empty {
-  border: 3px dashed yellow;
-  background-color: rgba(255, 255, 0, 0.1);
-  cursor: pointer;
-  position: absolute;
-  width: 80px;
-  height: 120px;
-  border-radius: 10px;
-  transition: box-shadow 0.3s ease-in-out, outline-color 0.3s ease-in-out;
-}
-
-.middle-pile.empty::before {
-  content: "Play Here";
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  font-size: 14px;
-  color: #aaa;
-  pointer-events: none;
-  user-select: none;
-}
-
-.middle-pile .card {
-  width: 80px;
-  height: 120px;
-  background: white;
-  border: 1px solid #333;
-  border-radius: 6px;
-  padding: 5px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
-  position: absolute;
-}
-
-.middle-pile .card:nth-child(n+2) {
-  transform: translate(5px, 5px);
-}
-
-.middle-pile .card.red {
-  color: red;
-}
-
 .first-player-message {
   position: absolute;
   top: 20px;
@@ -293,10 +322,9 @@ button:hover {
   background-color: rgba(255, 255, 0, 0.1);
 }
 
-
 .middle-pile.glow {
-  box-shadow: 0 0 20px 8px rgba(255, 215, 0, 0.8), /* golden glow */
-              0 0 40px 16px rgba(255, 215, 0, 0.4);
+  box-shadow: 0 0 20px 8px rgba(255, 215, 0, 0.8),
+    0 0 40px 16px rgba(255, 215, 0, 0.4);
   transition: box-shadow 0.3s ease-in-out;
   outline: none; /* Remove default outline to avoid stacking */
 }
@@ -313,6 +341,6 @@ button:hover {
 /* Style for when the middle pile is empty AND should glow */
 .middle-pile.empty.glow {
   box-shadow: 0 0 20px 8px rgba(255, 215, 0, 0.8),
-              0 0 40px 16px rgba(255, 215, 0, 0.4);
+    0 0 40px 16px rgba(255, 215, 0, 0.4);
   outline: none; /* Ensure no double outline */
 }
