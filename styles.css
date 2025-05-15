@@ -101,7 +101,6 @@ button:hover {
 .deck {
   position: absolute;
   top: 550px;
-  /* Increased from 150px */
   right: 30px;
   width: 80px;
   height: 120px;
@@ -132,7 +131,6 @@ button:hover {
   transition: transform 0.3s ease-in-out;
 }
 
-/* 🔥 Updated top-card hover style */
 .card-back.top-card {
   position: relative;
   z-index: 999;
@@ -141,10 +139,6 @@ button:hover {
 
 .card-back.top-card:hover {
   transform: scale(1.2) translateY(-40px) !important;
-}
-
-/* Optional glow effect on hover */
-.card-back.top-card:hover {
   box-shadow: 0 0 10px 4px rgba(255, 255, 255, 0.4);
 }
 
@@ -217,9 +211,29 @@ button:hover {
   left: 50%;
   transform: translate(-50%, -50%);
   z-index: 10;
-  display: flex; /* Use flexbox for centering */
+  display: flex;
   justify-content: center;
   align-items: center;
+  min-width: 80px;
+  min-height: 120px;
+}
+
+.middle-pile.empty {
+  border: 2px dashed #ccc;
+  border-radius: 10px;
+  background-color: #f9f9f9;
+  position: relative;
+}
+
+.middle-pile.empty::before {
+  content: "Drop here";
+  position: absolute;
+  font-size: 14px;
+  color: #999;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
 }
 
 .middle-pile .card {
@@ -230,12 +244,11 @@ button:hover {
   border-radius: 6px;
   padding: 5px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
-  position: absolute; /* Allow overlapping */
+  position: absolute;
 }
 
 .middle-pile .card:nth-child(n+2) {
-  /* Offset subsequent cards to create a stack effect */
-  transform: translate(5px, 5px); /* Adjust the offset as needed */
+  transform: translate(5px, 5px);
 }
 
 .middle-pile .card.red {
@@ -264,6 +277,11 @@ button:hover {
 }
 
 #middle-pile {
-  cursor: pointer; /* Indicate it's clickable */
-  /* Add any other styling for the middle pile container */
+  cursor: pointer;
+}
+
+.deck.empty-highlight {
+  border: 3px dashed yellow;
+  box-shadow: 0 0 15px yellow;
+  background-color: rgba(255, 255, 0, 0.1);
 }

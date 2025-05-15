@@ -199,58 +199,23 @@ function triggerPickup() {
   endPlayerTurn();
 }
 
+
+
+
+
+
 function handlePlayOnMiddlePile() {
-  if (currentTurn !== "Player" || waitingForDraw || selectedCards.length === 0) return;
+  if (currentTurn !== "Player" || waitingForDraw || selectedCards.length === 0) {
+    return;
+  }
 
   if (middlePile.length === 0) {
-    // Playing on an empty pile: must select at least one card of the same rank
-    const firstRank = selectedCards[0].card.rank;
-    const allSameRank = selectedCards.every(sel => sel.card.rank === firstRank);
+    if (selectedCards.length > 0) {
+      const firstRank = selectedCards[0].card.rank;
+      const allSameRank = selectedCards.every(sel => sel.card.rank === firstRank);
 
-    if (allSameRank) {
-      selectedCards.forEach(({ card, element }) => {
-        middlePile.push(card);
-        playerHand = playerHand.filter(c => c !== card);
-        element.remove();
-      });
-      renderHand(playerHand);
-      renderMiddlePile();
-      selectedCards = [];
-      if (playerHand.length < 3 && deck.length > 0) {
-        waitingForDraw = true;
-        document.getElementById("first-player").textContent = "Click the deck to draw.";
-      } else {
-        endPlayerTurn();
-      }
-    } else if (selectedCards.length > 0) {
-      // Check if there's any higher card the player could have played
-      const hasHigherCard = playerHand.some(c => rankValue(c.rank) > -1); // Always false on empty pile?
-      if (hasHigherCard) {
-        triggerPickup();
-      } else {
-        playerHand.push(...middlePile);
-        middlePile = [];
-        renderHand(playerHand);
-        renderMiddlePile();
-        while (playerHand.length < 3 && deck.length > 0) {
-          playerHand.push(deck.shift());
-        }
-        renderHand(playerHand);
-        updateDeckVisual(deck);
-        endPlayerTurn();
-      }
-    }
-  } else {
-    // Playing on a non-empty middle pile
-    const topCard = middlePile[middlePile.length - 1];
-    const topRankVal = rankValue(topCard.rank);
-
-    const firstSelectedRank = selectedCards[0].card.rank;
-    const allSameRankSelected = selectedCards.every(sel => sel.card.rank === firstSelectedRank);
-
-    if (allSameRankSelected) {
-      const firstSelectedRankVal = rankValue(firstSelectedRank);
-      if (firstSelectedRankVal >= topRankVal) {
+      if (allSameRank) {
+        // PLAY all selected cards of the same rank onto empty middlePile
         selectedCards.forEach(({ card, element }) => {
           middlePile.push(card);
           playerHand = playerHand.filter(c => c !== card);
@@ -266,47 +231,55 @@ function handlePlayOnMiddlePile() {
           endPlayerTurn();
         }
       } else {
-        // Check if there's any higher card the player could have played
-        const hasHigherCard = playerHand.some(c => rankValue(c.rank) > topRankVal);
-        if (hasHigherCard) {
-          triggerPickup();
-        } else {
-          playerHand.push(...middlePile);
-          middlePile = [];
+        // Invalid multi-card play on empty pile — must be same rank
+        triggerPickup();
+      }
+    }
+  } else {
+    // Regular logic for playing on a non-empty middle pile
+    const topCard = middlePile[middlePile.length - 1];
+    const topRankVal = rankValue(topCard.rank);
+
+    if (selectedCards.length > 0) {
+      const firstSelectedRank = selectedCards[0].card.rank;
+      const allSameRankSelected = selectedCards.every(sel => sel.card.rank === firstSelectedRank);
+      const firstSelectedRankVal = rankValue(firstSelectedRank);
+
+      if (allSameRankSelected) {
+        if (firstSelectedRankVal >= topRankVal) {
+          selectedCards.forEach(({ card, element }) => {
+            middlePile.push(card);
+            playerHand = playerHand.filter(c => c !== card);
+            element.remove();
+          });
           renderHand(playerHand);
           renderMiddlePile();
-          while (playerHand.length < 3 && deck.length > 0) {
-            playerHand.push(deck.shift());
+          selectedCards = [];
+          if (playerHand.length < 3 && deck.length > 0) {
+            waitingForDraw = true;
+            document.getElementById("first-player").textContent = `Click the deck to draw ${3 - playerHand.length} card(s).`;
+          } else {
+            endPlayerTurn();
           }
-          renderHand(playerHand);
-          updateDeckVisual(deck);
-          endPlayerTurn();
+        } else {
+          triggerPickup();
         }
-      }
-    } else if (selectedCards.length > 0) {
-      // Check if there's any higher card the player could have played
-      const hasHigherCard = playerHand.some(c => rankValue(c.rank) > topRankVal);
-      if (hasHigherCard) {
-        triggerPickup();
       } else {
-        playerHand.push(...middlePile);
-        middlePile = [];
-        renderHand(playerHand);
-        renderMiddlePile();
-        while (playerHand.length < 3 && deck.length > 0) {
-          playerHand.push(deck.shift());
-        }
-        renderHand(playerHand);
-        updateDeckVisual(deck);
-        endPlayerTurn();
+        triggerPickup();
       }
     }
   }
 
-  // Deselect cards after attempting to play (valid or invalid)
+  // Deselect after play
   selectedCards.forEach(({ element }) => element.classList.remove("selected", "enlarged"));
   selectedCards = [];
 }
+
+
+
+
+
+
 
 function renderOpponentHand() {
   const container = document.getElementById("opponent-hand");
@@ -340,6 +313,7 @@ function endPlayerTurn() {
       renderOpponentHand();
       updateDeckVisual(deck);
     }
+
     currentTurn = "Player";
     document.getElementById("first-player").textContent = "It's your turn!";
   }, 800);
@@ -357,7 +331,7 @@ function opponentPlay() {
 
   if (topCard) {
     const topVal = rankValue(topCard.rank);
-    const playable = opponentHand.filter(card => rankValue(card.rank) > topVal);
+    const playable = opponentHand.filter(card => rankValue(card.rank) >= topVal);
     if (playable.length > 0) {
       const chosen = playable.sort((a, b) => rankValue(a.rank) - rankValue(b.rank))[0];
       opponentHand = opponentHand.filter(c => c !== chosen);
@@ -393,32 +367,39 @@ document.getElementById("deck").addEventListener("click", () => {
       playerHand.push(deck.shift());
     }
     renderHand(playerHand);
-    updateDeckVisual(deck);
+    updateDeckVisual(deck); // Called after potential depletion
     renderMiddlePile();
     waitingForDraw = false;
     endPlayerTurn();
   } else if (currentTurn === "Player" && playerHand.length < 3 && deck.length > 0 && !waitingForDraw) {
     playerHand.push(deck.shift());
     renderHand(playerHand);
-    updateDeckVisual(deck);
+    updateDeckVisual(deck); // Called after potential depletion
     renderMiddlePile();
     endPlayerTurn();
   }
 });
 
+
 function updateDeckVisual(currentDeck) {
   const deckContainer = document.getElementById("deck");
   deckContainer.innerHTML = "";
-  currentDeck.forEach((_, i) => {
-    const back = document.createElement("div");
-    back.className = "card-back";
-    back.style.zIndex = i + 1;
-    back.style.transform = `translateX(${-i * 0.5}px) translateY(${-i * 0.5}px)`;
-    deckContainer.appendChild(back);
-  });
 
-  const backs = deckContainer.querySelectorAll(".card-back");
-  if (backs.length > 0) backs[backs.length - 1].classList.add("top-card");
+  if (currentDeck.length === 0) {
+    deckContainer.classList.add("empty-highlight");
+  } else {
+    deckContainer.classList.remove("empty-highlight");
+    currentDeck.forEach((_, i) => {
+      const back = document.createElement("div");
+      back.className = "card-back";
+      back.style.zIndex = i + 1;
+      back.style.transform = `translateX(${-i * 0.5}px) translateY(${-i * 0.5}px)`;
+      deckContainer.appendChild(back);
+    });
+
+    const backs = deckContainer.querySelectorAll(".card-back");
+    if (backs.length > 0) backs[backs.length - 1].classList.add("top-card");
+  }
 
   setTimeout(() => {
     deckContainer.classList.add("revealed");
@@ -435,6 +416,8 @@ function createCardDiv(card) {
     `;
   return div;
 }
+
+
 
 // 🚀 Start the game
 dealHand();
