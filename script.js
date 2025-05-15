@@ -235,44 +235,55 @@ function burnMiddlePile() {
   setTimeout(() => middlePileDiv.classList.remove('burn-animation'), 800);
 }
 
+
+
+
 function sendCardsToBurnPile(cards) {
   if (!burnPileDiv) return;
 
+  // Get or create the burned cards container
   let burnedCardsContainer = burnPileDiv.querySelector('.burned-cards-container');
   if (!burnedCardsContainer) {
     burnedCardsContainer = document.createElement('div');
     burnedCardsContainer.className = 'burned-cards-container';
-    burnedCardsContainer.style.position = 'relative';
-    burnedCardsContainer.style.width = '100%';
-    burnedCardsContainer.style.height = '100%';
+    burnedCardsContainer.style.position = 'absolute'; // Changed from 'relative'
+    burnedCardsContainer.style.width = '200%'; // Allow overflow
+    burnedCardsContainer.style.height = '200%';
+    burnedCardsContainer.style.left = '-50%'; // Center the expanded container
+    burnedCardsContainer.style.top = '-50%';
+    burnedCardsContainer.style.pointerEvents = 'none'; // Prevent interaction
     burnPileDiv.appendChild(burnedCardsContainer);
   }
 
-  let verticalOffset = burnedCardsContainer.children.length * 15;
-  const maxRotation = 15;
-  const maxHorizontalOffset = 10;
+  // Random placement with spill-over
+  const maxRotation = 25; // More dramatic rotation
+  const maxHorizontalSpread = 120; // Wider spread (pixels)
+  const maxVerticalSpread = 80; // Vertical spread (pixels)
 
   cards.forEach((card, index) => {
     const cardDiv = createCardDiv(card);
     cardDiv.classList.add("burned-card");
-
-    const rotation = Math.floor(Math.random() * (maxRotation * 2)) - maxRotation;
-    const horizontalOffset = Math.floor(Math.random() * (maxHorizontalOffset * 2)) - maxHorizontalOffset;
-
     cardDiv.style.position = 'absolute';
+
+    // Random positioning with spill-over
+    const rotation = Math.floor(Math.random() * (maxRotation * 2)) - maxRotation;
+    const horizontalOffset = Math.floor(Math.random() * maxHorizontalSpread) - (maxHorizontalSpread / 2);
+    const verticalOffset = Math.floor(Math.random() * maxVerticalSpread) - (maxVerticalSpread / 3); // Slightly upward bias
+
     cardDiv.style.transform = `rotate(${rotation}deg)`;
-    cardDiv.style.left = `${50 + horizontalOffset}%`;
-    cardDiv.style.top = `${verticalOffset}px`;
-    cardDiv.style.marginLeft = '-50px';
-    cardDiv.style.zIndex = burnedCardsContainer.children.length + index + 1;
-    cardDiv.style.transition = 'all 0.3s ease';
+    cardDiv.style.left = `calc(50% + ${horizontalOffset}px)`; // Center + random spread
+    cardDiv.style.top = `calc(50% + ${verticalOffset}px)`;
+    cardDiv.style.zIndex = index;
+    cardDiv.style.transition = 'all 0.5s ease';
 
     burnedCardsContainer.appendChild(cardDiv);
   });
 
+  // Animation
   burnPileDiv.classList.add('burn-animation');
   setTimeout(() => burnPileDiv.classList.remove('burn-animation'), 500);
 }
+
 
 function triggerPickup() {
   incorrectMoveSound.play();
