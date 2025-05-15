@@ -123,7 +123,7 @@ function renderHand(cards) {
                     if (isSelected) {
                         cardDiv.classList.remove("selected", "enlarged");
                         selectedCards = selectedCards.filter(sel => sel.element !== cardDiv);
-                    } else if (selectedCards.length < 4) { // Allow selection up to 4 cards
+                    } else if (selectedCards.length <= 4) { // Allow selection up to 4 cards
                         cardDiv.classList.add("selected", "enlarged");
                         selectedCards.push({ card, element: cardDiv });
                     } else {
