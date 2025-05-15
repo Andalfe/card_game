@@ -118,10 +118,10 @@ button:hover {
   width: 80px;
   height: 120px;
   background: repeating-linear-gradient(45deg,
-    #2b2b2b,
-    #2b2b2b 4px,
-    #444 4px,
-    #444 8px);
+      #2b2b2b,
+      #2b2b2b 4px,
+      #444 4px,
+      #444 8px);
   border: 2px solid #111;
   border-radius: 10px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
@@ -216,24 +216,31 @@ button:hover {
   align-items: center;
   min-width: 80px;
   min-height: 120px;
+  border-radius: 10px;
 }
 
+
 .middle-pile.empty {
-  border: 2px dashed #ccc;
+  border: 3px dashed yellow;
+  background-color: rgba(255, 255, 0, 0.1);
+  cursor: pointer;
+  position: absolute;
+  width: 80px;
+  height: 120px;
   border-radius: 10px;
-  background-color: #f9f9f9;
-  position: relative;
+  transition: box-shadow 0.3s ease-in-out, outline-color 0.3s ease-in-out;
 }
 
 .middle-pile.empty::before {
-  content: "Drop here";
+  content: "Play Here";
   position: absolute;
-  font-size: 14px;
-  color: #999;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
+  font-size: 14px;
+  color: #aaa;
   pointer-events: none;
+  user-select: none;
 }
 
 .middle-pile .card {
@@ -284,4 +291,28 @@ button:hover {
   border: 3px dashed yellow;
   box-shadow: 0 0 15px yellow;
   background-color: rgba(255, 255, 0, 0.1);
+}
+
+
+.middle-pile.glow {
+  box-shadow: 0 0 20px 8px rgba(255, 215, 0, 0.8), /* golden glow */
+              0 0 40px 16px rgba(255, 215, 0, 0.4);
+  transition: box-shadow 0.3s ease-in-out;
+  outline: none; /* Remove default outline to avoid stacking */
+}
+
+.middle-pile.empty:hover {
+  /* Sharp glowing outline effect */
+  box-shadow: 0 0 0 4px rgba(255, 255, 0, 0.9); /* no blur, just spread */
+  outline: 3px solid yellow;
+  outline-offset: -6px; /* pull the outline inside so it fits card shape */
+  background-color: rgba(255, 255, 0, 0.15);
+  cursor: pointer;
+}
+
+/* Style for when the middle pile is empty AND should glow */
+.middle-pile.empty.glow {
+  box-shadow: 0 0 20px 8px rgba(255, 215, 0, 0.8),
+              0 0 40px 16px rgba(255, 215, 0, 0.4);
+  outline: none; /* Ensure no double outline */
 }
