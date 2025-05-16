@@ -57,66 +57,86 @@ function countRankInMiddlePile(rank) {
 }
 
 function dealHand() {
-  createDeck();
+    if (burnPileDiv) burnPileDiv.innerHTML = '';
+    createDeck();
 
-  playerHand = deck.slice(0, handSize);
-  opponentHand = deck.slice(handSize, handSize * 2);
-  deck = deck.slice(handSize * 2);
+    playerHand = deck.slice(0, handSize);
+    opponentHand = deck.slice(handSize, handSize * 2);
+    deck = deck.slice(handSize * 2);
 
-  const redRanks = ["3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"];
-  let firstPlayer = null;
-  middlePile = [];
-  needsInitialDraw = false;
-  initialCardPlayed = false;
-  waitingForDraw = false;
-  opponentInitialTurn = true;
-  clearSelectedCards(); // Clear any selections when dealing new hand
+    const redRanks = ["3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"];
+    let firstPlayer = null;
+    middlePile = [];
+    needsInitialDraw = false;
+    initialCardPlayed = false;
+    waitingForDraw = false;
+    opponentInitialTurn = true;
+    clearSelectedCards(); // Clear any selections when dealing new hand
+    let initialRedTen = null; // To track if a red 10 was played initially
 
-  for (let rank of redRanks) {
-    let i = playerHand.findIndex(card => card.rank === rank && card.suit.color === "red");
-    if (i !== -1) {
-      middlePile = [playerHand.splice(i, 1)[0]];
-      firstPlayer = "Player";
-      initialCardPlayed = true;
-      break;
-    }
-    let j = opponentHand.findIndex(card => card.rank === rank && card.suit.color === "red");
-    if (j !== -1) {
-      middlePile = [opponentHand.splice(j, 1)[0]];
-      firstPlayer = "Opponent";
-      needsInitialDraw = true;
-      initialCardPlayed = true;
-      break;
-    }
-  }
-
-  currentTurn = firstPlayer;
-  document.getElementById("first-player").textContent = `${firstPlayer} go${firstPlayer === "Player" ? "" : "es"} first!`;
-
-  renderHand(playerHand);
-  renderOpponentHand();
-  renderMiddlePile();
-  updateDeckVisual(deck);
-  updateMiddlePileGlow();
-
-  if (currentTurn === "Opponent") {
-    setTimeout(() => {
-      if (opponentInitialTurn) {
-        opponentInitialTurn = false;
-        if (opponentHand.length < 3 && deck.length > 0) {
-          opponentHand.push(deck.shift());
-          renderOpponentHand();
-          updateDeckVisual(deck);
+    for (let rank of redRanks) {
+        let i = playerHand.findIndex(card => card.rank === rank && card.suit.color === "red");
+        if (i !== -1) {
+            const card = playerHand.splice(i, 1)[0];
+            middlePile = [card];
+            firstPlayer = "Player";
+            initialCardPlayed = true;
+            if (card.rank === "10") {
+                initialRedTen = "Player";
+            }
+            break;
         }
-        currentTurn = "Player";
-        document.getElementById("first-player").textContent = "It's your turn!";
-      } else {
-        opponentPlay();
-      }
-    }, 800);
-  }
-}
+        let j = opponentHand.findIndex(card => card.rank === rank && card.suit.color === "red");
+        if (j !== -1) {
+            const card = opponentHand.splice(j, 1)[0];
+            middlePile = [card];
+            firstPlayer = "Opponent";
+            needsInitialDraw = true;
+            initialCardPlayed = true;
+            if (card.rank === "10") {
+                initialRedTen = "Opponent";
+            }
+            break;
+        }
+    }
 
+    currentTurn = firstPlayer;
+    document.getElementById("first-player").textContent = `${firstPlayer} go${firstPlayer === "Player" ? "" : "es"} first!`;
+
+    renderHand(playerHand);
+    renderOpponentHand();
+    renderMiddlePile();
+    updateDeckVisual(deck);
+    updateMiddlePileGlow();
+
+    // Logic to handle a red 10 as the initial card
+    if (initialRedTen) {
+        burnMiddlePile(); // Burn the empty middle pile
+        if (initialRedTen === "Player") {
+            document.getElementById("first-player").textContent = "Red 10 played! Player goes again.";
+            // Player's turn remains, no need for setTimeout
+        } else if (initialRedTen === "Opponent") {
+            document.getElementById("first-player").textContent = "Red 10 played! Opponent goes again.";
+            // Opponent's turn continues (we might need to adjust the opponent's first turn logic)
+            opponentPlay(); // Immediately allow opponent to play again
+        }
+    } else if (currentTurn === "Opponent") {
+        setTimeout(() => {
+            if (opponentInitialTurn) {
+                opponentInitialTurn = false;
+                if (opponentHand.length < 3 && deck.length > 0) {
+                    opponentHand.push(deck.shift());
+                    renderOpponentHand();
+                    updateDeckVisual(deck);
+                }
+                currentTurn = "Player";
+                document.getElementById("first-player").textContent = "It's your turn!";
+            } else {
+                opponentPlay();
+            }
+        }, 800);
+    }
+}
 function renderHand(cards) {
   const handContainer = document.getElementById("shead-hand");
   handContainer.innerHTML = "";
@@ -159,7 +179,19 @@ function canPlayCard(card) {
   if (middlePile.length === 0) {
     return true;
   }
+
+  // Always allow playing a 2
+  if (card.rank === "2") {
+    return true;
+  }
+
   const topCard = middlePile[middlePile.length - 1];
+
+  // If the top card is a 2, allow anything to be played
+  if (topCard.rank === "2") {
+    return true;
+  }
+
   return rankValue(card.rank) >= rankValue(topCard.rank);
 }
 
